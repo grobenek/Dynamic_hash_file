@@ -5,7 +5,7 @@ import java.io.*;
 public class LimitedString implements IConvertableToBytes<LimitedString> {
   private static final int CHAR_BYTE_SIZE = 2;
   private final int maxLength;
-  private String string;
+  private final String string;
 
   public LimitedString(int maxLength, String string) {
     this.maxLength = maxLength;
@@ -35,6 +35,7 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
         DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
 
       outputStream.writeInt(maxLength);
+      outputStream.writeInt(string.length());
       outputStream.writeBytes(getMaxStringLength());
 
       return byteArrayOutputStream.toByteArray();
@@ -48,7 +49,7 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
     int lengthDifference = maxLength - getString().length();
 
     if (lengthDifference > 0) {
-      string = string.concat("x".repeat(lengthDifference));
+      return string.concat("x".repeat(lengthDifference));
     }
 
     return string;
@@ -56,7 +57,7 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
 
   @Override
   public String toString() {
-    return string;
+    return getString();
   }
 
   @Override
@@ -65,7 +66,8 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
 
       int maxRange = inputStream.readInt();
-      String string = new String(inputStream.readNBytes(maxRange));
+      int stringLength = inputStream.readInt();
+      String string = new String(inputStream.readNBytes(stringLength));
 
       return new LimitedString(maxRange, string);
     } catch (IOException e) {

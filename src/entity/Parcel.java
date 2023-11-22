@@ -58,6 +58,10 @@ public class Parcel extends SpatialData implements IShapeData {
         MAX_RELATED_PROPERTY_LIST_SIZE);
   }
 
+  public Parcel(int identificationNumber, String description) {
+    super(identificationNumber, MAX_DESCRIPTION_SIZE, description, MAX_RELATED_PROPERTY_LIST_SIZE);
+  }
+
   public static int getMaxPropertyListSize() {
     return MAX_RELATED_PROPERTY_LIST_SIZE;
   }
@@ -71,8 +75,6 @@ public class Parcel extends SpatialData implements IShapeData {
     try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
 
-      setBeingSerialized(true);
-
       outputStream.writeInt(SpatialDataType.PARCEL.ordinal());
       outputStream.writeInt(getIdentificationNumber());
       outputStream.write(getDescription().toByteArray());
@@ -80,10 +82,9 @@ public class Parcel extends SpatialData implements IShapeData {
 
       outputStream.writeInt(getRelatedDataList().size());
       for (SpatialData spatialData : getRelatedDataList()) {
-        outputStream.write(spatialData.toByteArray());
+        outputStream.writeInt(spatialData.getIdentificationNumber());
       }
 
-      setBeingSerialized(false);
       return byteArrayOutputStream.toByteArray();
 
     } catch (IOException e) {

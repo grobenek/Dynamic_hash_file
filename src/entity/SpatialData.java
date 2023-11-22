@@ -12,7 +12,6 @@ import structure.quadtree.IShapeData;
 public abstract class SpatialData implements IShapeData, IConvertableToBytes<SpatialData> {
   private final int maximumRelatedDataListSize;
   private final int maximumDescriptionSize;
-  private boolean isBeingSerialized = false;
   private int identificationNumber;
   private LimitedString description;
   private List<SpatialData> relatedDataList;
@@ -124,15 +123,6 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
 
     this.relatedDataList = new ArrayList<>();
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
-  }
-
-  public boolean isBeingSerialized() {
-    return isBeingSerialized;
-  }
-
-  public SpatialData setBeingSerialized(boolean beingSerialized) {
-    isBeingSerialized = beingSerialized;
-    return this;
   }
 
   public int getMaximumRelatedDataListSize() {

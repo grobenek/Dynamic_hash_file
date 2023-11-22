@@ -108,8 +108,6 @@ public class Property extends SpatialData implements IShapeData {
     try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
 
-      setBeingSerialized(true);
-
       outputStream.writeInt(SpatialDataType.PROPERTY.ordinal());
       outputStream.writeInt(getIdentificationNumber());
       outputStream.writeInt(registrationNumber);
@@ -118,11 +116,9 @@ public class Property extends SpatialData implements IShapeData {
 
       outputStream.writeInt(getRelatedDataList().size());
       for (SpatialData spatialData : getRelatedDataList()) {
-        outputStream.write(
-            spatialData.toByteArray()); //TODO INFINITE LOOP
+        outputStream.writeInt(spatialData.getIdentificationNumber());
       }
 
-      setBeingSerialized(false);
       return byteArrayOutputStream.toByteArray();
 
     } catch (IOException e) {

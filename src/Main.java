@@ -39,6 +39,7 @@ public class Main {
 
     SpatialData restoredProperty = SpatialDataFactory.fromByteArray(propertyByteArray, true);
 
-    System.out.println(property.equals(restoredProperty));
+    System.out.println(property);
+    System.out.println(restoredProperty);
   }
 }

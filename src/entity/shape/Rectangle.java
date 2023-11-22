@@ -7,7 +7,8 @@ import structure.dynamichashfile.IConvertableToBytes;
 import structure.quadtree.IShapeData;
 
 public class Rectangle implements IShapeData, IConvertableToBytes<Rectangle> {
-  public static final int BYTE_ARRAY_SIZE = (4 * 8) + (4 * 2); // double is 8 bytes and char is 2 bytes
+  public static final int BYTE_ARRAY_SIZE =
+      (4 * 8) + (4 * 2); // double is 8 bytes and char is 2 bytes
   private final GpsCoordinates firstPoint;
   private final GpsCoordinates secondPoint;
   private final double width;

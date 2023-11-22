@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import structure.dynamichashfile.LimitedString;
 
-// TODO refactor,aby fromByteArray iba naplnilo triedu a nevytvaralo novu zbytocne
 public class SpatialDataFactory {
   public static SpatialData fromByteArray(byte[] byteArray, boolean loadDataList) {
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
@@ -23,10 +22,10 @@ public class SpatialDataFactory {
       if (className == SpatialDataType.PROPERTY) {
         registrationNumber = inputStream.readInt();
         description =
-            description.fromByteArray(inputStream.readNBytes(Property.getMaxDescriptionSize() + 4));
+            description.fromByteArray(inputStream.readNBytes(Property.getMaxDescriptionSize() + 8));
       } else {
         description =
-            description.fromByteArray(inputStream.readNBytes(Parcel.getMaxDescriptionSize() + 4));
+            description.fromByteArray(inputStream.readNBytes(Parcel.getMaxDescriptionSize() + 8));
       }
 
       Rectangle shape =
@@ -39,36 +38,11 @@ public class SpatialDataFactory {
         relatedDataList = new ArrayList<>(numberOfRelatedData);
 
         for (int i = 0; i < numberOfRelatedData; i++) {
+          int identificationNumberOfRelatedData = inputStream.readInt();
           if (className == SpatialDataType.PROPERTY) {
-            SpatialDataType classType =
-                SpatialDataType.values()[inputStream.readInt()]; // Skip class name
-            int relatedIdentificationNumber = inputStream.readInt();
-            LimitedString relatedDescription =
-                description.fromByteArray(
-                    inputStream.readNBytes(Parcel.getMaxDescriptionSize() + 4));
-            Rectangle relatedShape =
-                RectangleFactory.fromByteArray(
-                    inputStream.readNBytes(Rectangle.getByteArraySize()));
-            SpatialData property =
-                new Parcel(relatedIdentificationNumber, relatedDescription, relatedShape);
-            relatedDataList.add(property);
+            relatedDataList.add(new Parcel(identificationNumberOfRelatedData, ""));
           } else if (className == SpatialDataType.PARCEL) {
-            inputStream.readInt(); // Skip class name
-            int relatedIdentificationNumber = inputStream.readInt();
-            int relatedRegistrationNumber = inputStream.readInt();
-            LimitedString relatedDescription =
-                description.fromByteArray(
-                    inputStream.readNBytes(Property.getMaxDescriptionSize() + 4));
-            Rectangle relatedShape =
-                RectangleFactory.fromByteArray(
-                    inputStream.readNBytes(Rectangle.getByteArraySize()));
-            SpatialData parcel =
-                new Property(
-                    relatedIdentificationNumber,
-                    relatedRegistrationNumber,
-                    relatedDescription,
-                    relatedShape);
-            relatedDataList.add(parcel);
+            relatedDataList.add(new Property(identificationNumberOfRelatedData, -1, ""));
           }
         }
       }
