@@ -1,35 +1,146 @@
 package entity;
 
 import entity.shape.Rectangle;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import structure.dynamichashfile.IConvertableToBytes;
-import structure.dynamichashfile.Record;
+import structure.dynamichashfile.LimitedString;
 import structure.quadtree.IShapeData;
 
-public abstract class SpatialData<T extends IShapeData> implements IShapeData, IConvertableToBytes {
+public abstract class SpatialData implements IShapeData, IConvertableToBytes<SpatialData> {
+  private final int maximumRelatedDataListSize;
+  private final int maximumDescriptionSize;
+  private boolean isBeingSerialized = false;
   private int identificationNumber;
-  private String description;
+  private LimitedString description;
   private List<SpatialData> relatedDataList;
   private Rectangle shape;
 
-  public SpatialData(int identificationNumber, String description, Rectangle shape) {
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      Rectangle shape,
+      int maximumRelatedDataListSize,
+      List<SpatialData> relatedDataList) {
+
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.shape = shape;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    if (relatedDataList.size() > maximumRelatedDataListSize) {
+      throw new IllegalArgumentException(
+          "Cannot set related data list with "
+              + relatedDataList.size()
+              + "! Exceeded maximum list size of "
+              + maximumRelatedDataListSize
+              + "!");
+    }
+
+    this.relatedDataList = relatedDataList;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      Rectangle shape,
+      int maximumRelatedDataListSize,
+      List<SpatialData> relatedDataList) {
+
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
     this.identificationNumber = identificationNumber;
     this.description = description;
     this.shape = shape;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    if (relatedDataList.size() > maximumRelatedDataListSize) {
+      throw new IllegalArgumentException(
+          "Cannot set related data list with "
+              + relatedDataList.size()
+              + "! Exceeded maximum list size of "
+              + maximumRelatedDataListSize
+              + "!");
+    }
+
+    this.relatedDataList = relatedDataList;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      Rectangle shape,
+      int maximumRelatedDataListSize) {
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.shape = shape;
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.maximumDescriptionSize = maximumDescriptionSize;
 
     this.relatedDataList = new ArrayList<>();
   }
 
-  public SpatialData(int identificationNumber, String description) {
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      Rectangle shape,
+      int maximumRelatedDataListSize) {
     this.identificationNumber = identificationNumber;
     this.description = description;
+    this.shape = shape;
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.maximumDescriptionSize = maximumDescriptionSize;
 
     this.relatedDataList = new ArrayList<>();
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      int maximumRelatedDataListSize) {
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    this.relatedDataList = new ArrayList<>();
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      int maximumRelatedDataListSize) {
+    this.identificationNumber = identificationNumber;
+    this.description = description;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    this.relatedDataList = new ArrayList<>();
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
+  public boolean isBeingSerialized() {
+    return isBeingSerialized;
+  }
+
+  public SpatialData setBeingSerialized(boolean beingSerialized) {
+    isBeingSerialized = beingSerialized;
+    return this;
+  }
+
+  public int getMaximumRelatedDataListSize() {
+    return maximumRelatedDataListSize;
+  }
+
+  public int getMaximumDescriptionSize() {
+    return maximumDescriptionSize;
   }
 
   public int getIdentificationNumber() {
@@ -40,11 +151,11 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
     this.identificationNumber = identificationNumber;
   }
 
-  public String getDescription() {
+  public LimitedString getDescription() {
     return description;
   }
 
-  public void setDescription(String description) {
+  public void setDescription(LimitedString description) {
     this.description = description;
   }
 
@@ -57,6 +168,10 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
   }
 
   public void addRelatedData(SpatialData data) {
+    if (relatedDataList.size() >= maximumRelatedDataListSize) {
+      throw new IllegalStateException("Cannot add more relatedData to SpatialData: " + this);
+    }
+
     relatedDataList.add(data);
   }
 
@@ -71,6 +186,10 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
   @Override
   public Rectangle getShapeOfData() {
     return shape;
+  }
+
+  public int getMaxRelatedDataListSize() {
+    return maximumRelatedDataListSize;
   }
 
   public String toString(String className) {
@@ -103,10 +222,10 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SpatialData<?>)) {
+    if (!(obj instanceof SpatialData)) {
       return false;
     }
-    SpatialData<?> castedObj = (SpatialData<?>) obj;
+    SpatialData castedObj = (SpatialData) obj;
 
     return castedObj.getDescription().equals(description)
         && castedObj.identificationNumber == identificationNumber
@@ -123,23 +242,10 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
   }
 
   @Override
-  public byte[] toByteArray() {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream);
-
-    try {
-      outputStream.writeInt(identificationNumber);
-      outputStream.writeBytes(description);
-
-      return byteArrayOutputStream.toByteArray();
-
-    } catch (IOException e) {
-      throw new IllegalStateException("Error during conversion to byte array.");
-    }
-  }
+  public abstract byte[] toByteArray();
 
   @Override
-  public Record fromByteArray() {
-    return null;
+  public SpatialData fromByteArray(byte[] byteArray) {
+    return SpatialDataFactory.fromByteArray(byteArray, true);
   }
 }

@@ -1,8 +1,13 @@
 package entity.shape;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import structure.dynamichashfile.IConvertableToBytes;
 import structure.quadtree.IShapeData;
 
-public class Rectangle implements IShapeData {
+public class Rectangle implements IShapeData, IConvertableToBytes<Rectangle> {
+  public static final int BYTE_ARRAY_SIZE = (4 * 8) + (4 * 2); // double is 8 bytes and char is 2 bytes
   private final GpsCoordinates firstPoint;
   private final GpsCoordinates secondPoint;
   private final double width;
@@ -31,6 +36,10 @@ public class Rectangle implements IShapeData {
     this.halfWidth = (this.firstPoint.widthCoordinate() + this.secondPoint.widthCoordinate()) / 2;
     this.halfLength =
         (this.firstPoint.lengthCoordinate() + this.secondPoint.lengthCoordinate()) / 2;
+  }
+
+  public static int getByteArraySize() {
+    return BYTE_ARRAY_SIZE;
   }
 
   public GpsCoordinates getFirstPoint() {
@@ -102,6 +111,37 @@ public class Rectangle implements IShapeData {
     double otherTop = otherRectangle.getFirstPoint().lengthCoordinate();
     double otherBottom = otherRectangle.getSecondPoint().lengthCoordinate();
 
-    return (leftWidth < otherRight && rightWidth > otherLeft && bottomLength < otherBottom && topLength > otherTop);
+    return (leftWidth < otherRight
+        && rightWidth > otherLeft
+        && bottomLength < otherBottom
+        && topLength > otherTop);
+  }
+
+  @Override
+  public byte[] toByteArray() {
+    try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
+
+      outputStream.writeDouble(firstPoint.widthCoordinate());
+      outputStream.writeChar(firstPoint.width().getDirection());
+      outputStream.writeDouble(firstPoint.lengthCoordinate());
+      outputStream.writeChar(firstPoint.length().getDirection());
+
+      outputStream.writeDouble(secondPoint.widthCoordinate());
+      outputStream.writeChar(secondPoint.width().getDirection());
+      outputStream.writeDouble(secondPoint.lengthCoordinate());
+      outputStream.writeChar(secondPoint.length().getDirection());
+
+      return byteArrayOutputStream.toByteArray();
+
+    } catch (IOException e) {
+      throw new IllegalStateException(
+          "Error during conversion to byte array: " + e.getMessage(), e);
+    }
+  }
+
+  @Override
+  public Rectangle fromByteArray(byte[] byteArray) {
+    return RectangleFactory.fromByteArray(byteArray);
   }
 }
