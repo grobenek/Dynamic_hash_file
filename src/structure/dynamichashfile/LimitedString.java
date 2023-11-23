@@ -48,13 +48,13 @@ public class LimitedString implements IConvertableToBytes {
   }
 
   private String getMaxStringLength() {
-    int lengthDifference = maxLength - getString().length();
+    int lengthDifference = maxLength - string.length();
 
     if (lengthDifference > 0) {
       return string.concat("x".repeat(lengthDifference));
     }
 
-    return string;
+    return string.substring(0, maxLength);
   }
 
   @Override

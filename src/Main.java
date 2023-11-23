@@ -32,7 +32,7 @@ public class Main {
 
     System.out.println(rectangle.equals(newRectangle));
     Parcel parcel = new Parcel(1, "testik", rectangle);
-    Property property = new Property(1, 1, "abcd", rectangle, List.of(parcel));
+    Property property = new Property(1, 1, "abcdasddasdasdas", rectangle, List.of(parcel));
     parcel.addRelatedData(property);
 
     byte[] propertyByteArray = property.toByteArray();
