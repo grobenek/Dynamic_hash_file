@@ -1,23 +1,31 @@
 package entity.shape;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import structure.dynamichashfile.IConvertableToBytes;
 import structure.quadtree.IShapeData;
 
-public class Rectangle implements IShapeData, IConvertableToBytes<Rectangle> {
+public class Rectangle implements IShapeData, IConvertableToBytes {
   public static final int BYTE_ARRAY_SIZE =
       (4 * 8) + (4 * 2); // double is 8 bytes and char is 2 bytes
-  private final GpsCoordinates firstPoint;
-  private final GpsCoordinates secondPoint;
-  private final double width;
-  private final double length;
+  private GpsCoordinates firstPoint;
+  private GpsCoordinates secondPoint;
+  private double width;
+  private double length;
 
-  private final double halfWidth;
-  private final double halfLength;
+  private double halfWidth;
+  private double halfLength;
 
   public Rectangle(GpsCoordinates firstPoint, GpsCoordinates secondPoint) {
+    initializeRectangle(firstPoint, secondPoint);
+  }
+
+  public Rectangle() {}
+
+  public static int getByteArraySize() {
+    return BYTE_ARRAY_SIZE;
+  }
+
+  private void initializeRectangle(GpsCoordinates firstPoint, GpsCoordinates secondPoint) {
     this.firstPoint =
         new GpsCoordinates(
             Direction.S,
@@ -37,10 +45,6 @@ public class Rectangle implements IShapeData, IConvertableToBytes<Rectangle> {
     this.halfWidth = (this.firstPoint.widthCoordinate() + this.secondPoint.widthCoordinate()) / 2;
     this.halfLength =
         (this.firstPoint.lengthCoordinate() + this.secondPoint.lengthCoordinate()) / 2;
-  }
-
-  public static int getByteArraySize() {
-    return BYTE_ARRAY_SIZE;
   }
 
   public GpsCoordinates getFirstPoint() {
@@ -142,7 +146,31 @@ public class Rectangle implements IShapeData, IConvertableToBytes<Rectangle> {
   }
 
   @Override
-  public Rectangle fromByteArray(byte[] byteArray) {
-    return RectangleFactory.fromByteArray(byteArray);
+  public void fromByteArray(byte[] byteArray) {
+    try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        DataInputStream inputStream = new DataInputStream(byteArrayInputStream); ) {
+
+      GpsCoordinates firstPoint = extractPointFromByteArray(inputStream);
+
+      GpsCoordinates secondPoint = extractPointFromByteArray(inputStream);
+
+      initializeRectangle(firstPoint, secondPoint);
+
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
+  private GpsCoordinates extractPointFromByteArray(DataInputStream inputStream) throws IOException {
+    double secondPointWidthCoordinate = inputStream.readDouble();
+    Direction secondPointWidth = Direction.valueOf(String.valueOf(inputStream.readChar()));
+    double secondPointLengthCoordinate = inputStream.readDouble();
+    Direction secondPointLength = Direction.valueOf(String.valueOf(inputStream.readChar()));
+
+    return new GpsCoordinates(
+        secondPointWidth,
+        secondPointWidthCoordinate,
+        secondPointLength,
+        secondPointLengthCoordinate);
   }
 }

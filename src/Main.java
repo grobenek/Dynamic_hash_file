@@ -1,11 +1,9 @@
 import entity.Parcel;
 import entity.Property;
-import entity.SpatialData;
 import entity.SpatialDataFactory;
 import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
-import entity.shape.RectangleFactory;
 import java.util.List;
 import structure.dynamichashfile.LimitedString;
 
@@ -24,11 +22,13 @@ public class Main {
 
     byte[] limitedStringByte = limitedString.toByteArray();
 
-    LimitedString fromBytes = limitedString.fromByteArray(limitedStringByte);
+    LimitedString fromBytes = new LimitedString();
+    fromBytes.fromByteArray(limitedStringByte);
 
     System.out.println(fromBytes.equals(limitedString));
 
-    Rectangle newRectangle = RectangleFactory.fromByteArray(byteArray);
+    Rectangle newRectangle = new Rectangle();
+    newRectangle.fromByteArray(byteArray);
 
     System.out.println(rectangle.equals(newRectangle));
     Parcel parcel = new Parcel(1, "testik", rectangle);
@@ -37,7 +37,7 @@ public class Main {
 
     byte[] propertyByteArray = property.toByteArray();
 
-    SpatialData restoredProperty = SpatialDataFactory.fromByteArray(propertyByteArray, true);
+    Property restoredProperty = (Property) SpatialDataFactory.fromByteArray(propertyByteArray);
 
     System.out.println(property);
     System.out.println(restoredProperty);

@@ -1,14 +1,13 @@
 package entity;
 
 import entity.shape.Rectangle;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import structure.dynamichashfile.LimitedString;
 import structure.quadtree.IShapeData;
 
-public class Property extends SpatialData implements IShapeData {
+public class Property extends SpatialData<Parcel> implements IShapeData {
   public static final int MAX_DESCRIPTION_SIZE = 15;
   private static final int MAX_RELATED_PARCEL_LIST_SIZE = 6;
   private int registrationNumber;
@@ -18,7 +17,7 @@ public class Property extends SpatialData implements IShapeData {
       int registrationNumber,
       String description,
       Rectangle shape,
-      List<SpatialData> relatedDataList) {
+      List<Parcel> relatedDataList) {
     super(
         identificationNumber,
         MAX_DESCRIPTION_SIZE,
@@ -35,7 +34,7 @@ public class Property extends SpatialData implements IShapeData {
       int registrationNumber,
       LimitedString description,
       Rectangle shape,
-      List<SpatialData> relatedDataList) {
+      List<Parcel> relatedDataList) {
     super(
         identificationNumber,
         MAX_DESCRIPTION_SIZE,
@@ -82,6 +81,8 @@ public class Property extends SpatialData implements IShapeData {
     this.registrationNumber = registrationNumber;
   }
 
+  public Property() {}
+
   public static int getMaxParcelListSize() {
     return MAX_RELATED_PARCEL_LIST_SIZE;
   }
@@ -123,6 +124,44 @@ public class Property extends SpatialData implements IShapeData {
 
     } catch (IOException e) {
       throw new IllegalStateException("Error during conversion to byte array.");
+    }
+  }
+
+  @Override
+  public void fromByteArray(byte[] byteArray) {
+    try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
+
+      setMaximumDescriptionSize(MAX_DESCRIPTION_SIZE);
+      setMaximumRelatedDataListSize(MAX_RELATED_PARCEL_LIST_SIZE);
+
+      setIdentificationNumber(inputStream.readInt());
+
+      setRegistrationNumber(inputStream.readInt());
+
+      LimitedString description = new LimitedString();
+      description.fromByteArray(
+          inputStream.readNBytes(
+              getMaxDescriptionSize() + LimitedString.getStaticElementsByteSize()));
+      setDescription(description);
+
+      Rectangle shape = new Rectangle();
+      shape.fromByteArray(inputStream.readNBytes(Rectangle.getByteArraySize()));
+      setShape(shape);
+
+      // list deserialization
+      int numberOfRelatedData = inputStream.readInt();
+      List<Parcel> relatedDataList = new ArrayList<>(numberOfRelatedData);
+
+      for (int i = 0; i < numberOfRelatedData; i++) {
+        int identificationNumber = inputStream.readInt();
+        relatedDataList.add(new Parcel(identificationNumber, ""));
+      }
+
+      setRelatedDataList(relatedDataList);
+
+    } catch (IOException e) {
+      throw new RuntimeException("Error during conversion from byte array.", e);
     }
   }
 }

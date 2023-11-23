@@ -1,11 +1,13 @@
 package structure.dynamichashfile;
 
 import java.io.*;
+import structure.dynamichashfile.constant.ElementByteSize;
 
-public class LimitedString implements IConvertableToBytes<LimitedString> {
-  private static final int CHAR_BYTE_SIZE = 2;
-  private final int maxLength;
-  private final String string;
+public class LimitedString implements IConvertableToBytes {
+  private static final int STATIC_ELEMENTS_BYTE_SIZE =
+      2 * ElementByteSize.intByteSize(); // two ints
+  private int maxLength;
+  private String string;
 
   public LimitedString(int maxLength, String string) {
     this.maxLength = maxLength;
@@ -17,8 +19,8 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
     this.string = "";
   }
 
-  public static int getCharByteSize() {
-    return CHAR_BYTE_SIZE;
+  public static int getStaticElementsByteSize() {
+    return STATIC_ELEMENTS_BYTE_SIZE;
   }
 
   public int getMaxLength() {
@@ -61,15 +63,14 @@ public class LimitedString implements IConvertableToBytes<LimitedString> {
   }
 
   @Override
-  public LimitedString fromByteArray(byte[] byteArray) {
+  public void fromByteArray(byte[] byteArray) {
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
 
-      int maxRange = inputStream.readInt();
+      maxLength = inputStream.readInt();
       int stringLength = inputStream.readInt();
-      String string = new String(inputStream.readNBytes(stringLength));
+      string = new String(inputStream.readNBytes(stringLength));
 
-      return new LimitedString(maxRange, string);
     } catch (IOException e) {
       throw new IllegalStateException("Error during conversion to byte array.");
     }

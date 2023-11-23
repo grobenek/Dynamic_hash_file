@@ -1,7 +1,6 @@
 package entity;
 
 import entity.shape.Rectangle;
-import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -9,12 +8,12 @@ import structure.dynamichashfile.IConvertableToBytes;
 import structure.dynamichashfile.LimitedString;
 import structure.quadtree.IShapeData;
 
-public abstract class SpatialData implements IShapeData, IConvertableToBytes<SpatialData> {
-  private final int maximumRelatedDataListSize;
-  private final int maximumDescriptionSize;
+public abstract class SpatialData<T extends SpatialData<?>> implements IShapeData, IConvertableToBytes {
+  private int maximumRelatedDataListSize;
+  private int maximumDescriptionSize;
   private int identificationNumber;
   private LimitedString description;
-  private List<SpatialData> relatedDataList;
+  private List<T> relatedDataList;
   private Rectangle shape;
 
   public SpatialData(
@@ -23,7 +22,7 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
       String description,
       Rectangle shape,
       int maximumRelatedDataListSize,
-      List<SpatialData> relatedDataList) {
+      List<T> relatedDataList) {
 
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
     this.identificationNumber = identificationNumber;
@@ -49,7 +48,7 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
       LimitedString description,
       Rectangle shape,
       int maximumRelatedDataListSize,
-      List<SpatialData> relatedDataList) {
+      List<T> relatedDataList) {
 
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
     this.identificationNumber = identificationNumber;
@@ -125,12 +124,25 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
   }
 
+  /**
+   * Default constructor used to create dummy instance for loading from byteArray
+   */
+  public SpatialData() {}
+
   public int getMaximumRelatedDataListSize() {
     return maximumRelatedDataListSize;
   }
 
+  public void setMaximumRelatedDataListSize(int maximumRelatedDataListSize) {
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
   public int getMaximumDescriptionSize() {
     return maximumDescriptionSize;
+  }
+
+  public void setMaximumDescriptionSize(int maximumDescriptionSize) {
+    this.maximumDescriptionSize = maximumDescriptionSize;
   }
 
   public int getIdentificationNumber() {
@@ -149,15 +161,15 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
     this.description = description;
   }
 
-  public List<SpatialData> getRelatedDataList() {
+  public List<T> getRelatedDataList() {
     return relatedDataList;
   }
 
-  public void setRelatedDataList(List<SpatialData> relatedDataList) {
+  public void setRelatedDataList(List<T> relatedDataList) {
     this.relatedDataList = relatedDataList;
   }
 
-  public void addRelatedData(SpatialData data) {
+  public void addRelatedData(T data) {
     if (relatedDataList.size() >= maximumRelatedDataListSize) {
       throw new IllegalStateException("Cannot add more relatedData to SpatialData: " + this);
     }
@@ -165,7 +177,7 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
     relatedDataList.add(data);
   }
 
-  public void removeRelatedData(SpatialData data) {
+  public void removeRelatedData(T data) {
     relatedDataList.remove(data);
   }
 
@@ -187,7 +199,7 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
     relatedDataList.forEach(
         data -> {
           sb.append("identificationNumber=")
-              .append(data.identificationNumber)
+              .append(data.getIdentificationNumber())
               .append(" ")
               .append("Description: ")
               .append(data.getDescription())
@@ -215,7 +227,7 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
     if (!(obj instanceof SpatialData)) {
       return false;
     }
-    SpatialData castedObj = (SpatialData) obj;
+    SpatialData<?> castedObj = (SpatialData<?>) obj;
 
     return castedObj.getDescription().equals(description)
         && castedObj.identificationNumber == identificationNumber
@@ -235,7 +247,5 @@ public abstract class SpatialData implements IShapeData, IConvertableToBytes<Spa
   public abstract byte[] toByteArray();
 
   @Override
-  public SpatialData fromByteArray(byte[] byteArray) {
-    return SpatialDataFactory.fromByteArray(byteArray, true);
-  }
+  public abstract void fromByteArray(byte[] byteArray);
 }

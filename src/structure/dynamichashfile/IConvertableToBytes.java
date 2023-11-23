@@ -1,7 +1,7 @@
 package structure.dynamichashfile;
 
-public interface IConvertableToBytes<T> {
+public interface IConvertableToBytes {
   byte[] toByteArray();
 
-  T fromByteArray(byte[] byteArray);
+  void fromByteArray(byte[] byteArray);
 }
