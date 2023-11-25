@@ -5,6 +5,8 @@ import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.util.List;
+
+import structure.dynamichashfile.Block;
 import structure.dynamichashfile.LimitedString;
 
 public class Main {
@@ -18,28 +20,40 @@ public class Main {
 
     LimitedString limitedString = new LimitedString(10, "Testovaci");
 
-    System.out.println(limitedString.getString());
+//    System.out.println(limitedString.getString());
 
     byte[] limitedStringByte = limitedString.toByteArray();
 
     LimitedString fromBytes = new LimitedString();
     fromBytes.fromByteArray(limitedStringByte);
 
-    System.out.println(fromBytes.equals(limitedString));
+//    System.out.println(fromBytes.equals(limitedString));
 
     Rectangle newRectangle = new Rectangle();
     newRectangle.fromByteArray(byteArray);
 
-    System.out.println(rectangle.equals(newRectangle));
+//    System.out.println(rectangle.equals(newRectangle));
     Parcel parcel = new Parcel(1, "testik", rectangle);
-    Property property = new Property(1, 1, "abcdasddasdasdas", rectangle, List.of(parcel));
+    Property property = new Property(14156, 123, "abcdasddassdfdasdas", rectangle, List.of(parcel));
     parcel.addRelatedData(property);
 
     byte[] propertyByteArray = property.toByteArray();
 
     Property restoredProperty = (Property) SpatialDataFactory.fromByteArray(propertyByteArray);
 
-    System.out.println(property);
-    System.out.println(restoredProperty);
+    Block block = new Block(3);
+    block.addRecord(property);
+    block.addRecord(restoredProperty);
+
+    byte[] blockInBytes = block.toByteArray();
+
+    Block newBlock = new Block();
+    newBlock.fromByteArray(blockInBytes);
+
+    System.out.println(block);
+    System.out.println(newBlock);
+
+    //    System.out.println(property);
+    //    System.out.println(restoredProperty);
   }
 }

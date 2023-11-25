@@ -4,11 +4,11 @@ import entity.shape.Rectangle;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import structure.dynamichashfile.IRecord;
 import structure.dynamichashfile.LimitedString;
+import structure.dynamichashfile.Record;
 import structure.quadtree.IShapeData;
 
-public abstract class SpatialData<T extends SpatialData<?>> implements IShapeData, IRecord {
+public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {
   private int maximumRelatedDataListSize;
   private int maximumDescriptionSize;
   private int identificationNumber;
@@ -127,6 +127,8 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
   /** Default constructor used to create dummy instance for loading from byteArray */
   public SpatialData() {}
 
+
+
   public int getMaximumRelatedDataListSize() {
     return maximumRelatedDataListSize;
   }
@@ -227,9 +229,9 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
         + ", shape="
         + shape
         + '}'
-        + ", relatedDataList=\n"
+        + ", relatedDataList=[\n"
         + sb
-        + "\n";
+        + "]\n";
   }
 
   @Override
