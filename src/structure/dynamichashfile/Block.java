@@ -8,12 +8,12 @@ import structure.dynamichashfile.constant.ElementByteSize;
 public class Block implements IConvertableToBytes {
   private Record[] records;
   private int blockingFactor;
-  private int size;
+  private int byteSize;
   private int validRecords;
 
   public Block(int blockingFactor) {
     this.blockingFactor = blockingFactor;
-    this.size = 0;
+    this.byteSize = 0;
     this.validRecords = 0;
     this.records = new Record[blockingFactor];
     Arrays.fill(records, Record.getDummyInstance());
@@ -21,7 +21,7 @@ public class Block implements IConvertableToBytes {
 
   public Block() {
     this.blockingFactor = 0;
-    this.size = 0;
+    this.byteSize = 0;
     this.records = new Record[0];
     this.validRecords = 0;
   }
@@ -30,22 +30,66 @@ public class Block implements IConvertableToBytes {
     return blockingFactor;
   }
 
-  public int getSize() {
-    return size;
+  public int getByteSize() {
+    return byteSize;
   }
 
   public int getValidRecords() {
     return validRecords;
   }
 
+  public Record getRecord(Record pRecord) {
+    if (pRecord == null) {
+      throw new IllegalArgumentException("Cannot search null Record!");
+    }
+
+    for (Record record : records) {
+      if (record.equals(pRecord)) {
+        return record;
+      }
+    }
+    throw new IllegalArgumentException(String.format("Record %s was not found!", pRecord));
+  }
+
   public void addRecord(Record record) {
-    if (size >= blockingFactor) {
+    if (record == null) {
+      throw new IllegalArgumentException("Cannot add null Record!");
+    }
+
+    if (validRecords >= blockingFactor) {
       throw new IllegalStateException(
           String.format("Cannot add new Record! Blocking factor of %d exceeded!", blockingFactor));
     }
 
     validRecords++;
     records[validRecords - 1] = record;
+  }
+
+  public void removeRecord(Record pRecord) {
+    if (validRecords == 0) {
+      throw new IllegalStateException("Cannot delete Record from empty block!");
+    }
+
+    if (pRecord == null) {
+      throw new IllegalArgumentException("Cannot remove null Record!");
+    }
+
+    int lastValidRecordIndex = validRecords - 1;
+    for (int i = 0; i < records.length; i++) {
+      if (records[i].equals(pRecord)) {
+        removeRecord(i, lastValidRecordIndex);
+        return;
+      }
+    }
+    throw new IllegalStateException(String.format("Record %s was not found!", pRecord));
+  }
+
+  private void removeRecord(int i, int lastValidRecordIndex) {
+    if (i != lastValidRecordIndex) {
+      // swap with last valid record and decrease count
+      swapRecords(i, lastValidRecordIndex);
+    }
+    validRecords--;
   }
 
   private void swapRecords(int indexOfFirstItem, int indexOfSecondItem) {
@@ -128,8 +172,8 @@ public class Block implements IConvertableToBytes {
         .append(validRecords)
         .append("\n")
         .append("Records: ");
-    for (Record record : records) {
-      sb.append(record.toString()).append("\n");
+    for (int i = 0; i < validRecords; i++) {
+      sb.append(records[i].toString()).append("\n");
     }
 
     return sb.toString();
