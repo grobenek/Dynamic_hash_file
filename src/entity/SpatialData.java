@@ -74,6 +74,7 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
       String description,
       Rectangle shape,
       int maximumRelatedDataListSize) {
+
     this.identificationNumber = identificationNumber;
     this.description = new LimitedString(maximumDescriptionSize, description);
     this.shape = shape;
@@ -126,8 +127,6 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   /** Default constructor used to create dummy instance for loading from byteArray */
   public SpatialData() {}
-
-
 
   public int getMaximumRelatedDataListSize() {
     return maximumRelatedDataListSize;
@@ -243,9 +242,6 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
     return castedObj.getDescription().equals(description)
         && castedObj.identificationNumber == identificationNumber
-        && ((castedObj.relatedDataList == null && relatedDataList == null)
-            || (castedObj.relatedDataList != null
-                && castedObj.relatedDataList.equals(relatedDataList)))
         && ((castedObj.shape == null && shape == null)
             || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }

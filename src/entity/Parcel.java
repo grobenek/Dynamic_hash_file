@@ -11,17 +11,16 @@ import structure.dynamichashfile.Record;
 import structure.quadtree.IShapeData;
 
 public class Parcel extends SpatialData<Property> implements IShapeData {
+  public static final Parcel DUMMY_INSTANCE;
   private static final int MAX_RELATED_PROPERTY_LIST_SIZE = 5;
   private static final int MAX_DESCRIPTION_SIZE = 11;
+  private static final int BYTE_SIZE = 91;
 
   static {
     Rectangle rectangle =
         new Rectangle(
             new GpsCoordinates(Direction.S, Integer.MIN_VALUE, Direction.W, Integer.MIN_VALUE),
             new GpsCoordinates(Direction.N, Integer.MIN_VALUE, Direction.E, Integer.MIN_VALUE));
-    Parcel parcel = new Parcel(Integer.MIN_VALUE, "DUMMU", rectangle);
-
-    BYTE_SIZE = parcel.toByteArray().length;
     DUMMY_INSTANCE = new Parcel(Integer.MIN_VALUE, "DUMMY", rectangle);
   }
 
@@ -85,9 +84,13 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
     return MAX_DESCRIPTION_SIZE;
   }
 
+  public static Record getDummyInstance() {
+    return DUMMY_INSTANCE;
+  }
+
   @Override
-  public Record createDummyRecord() {
-    return new Parcel();
+  public int getByteSize() {
+    return BYTE_SIZE;
   }
 
   @Override
@@ -105,7 +108,7 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
         outputStream.writeInt(spatialData.getIdentificationNumber());
       }
 
-      for(int i = 0; i < MAX_RELATED_PROPERTY_LIST_SIZE - getRelatedDataList().size(); i++) {
+      for (int i = 0; i < MAX_RELATED_PROPERTY_LIST_SIZE - getRelatedDataList().size(); i++) {
         outputStream.writeInt(Integer.MIN_VALUE);
       }
 
@@ -147,7 +150,7 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
       }
 
       // read relatedList zombie data
-      for(int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
+      for (int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
         inputStream.readInt();
       }
 

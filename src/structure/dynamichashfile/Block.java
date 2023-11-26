@@ -5,37 +5,44 @@ import java.io.*;
 import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
 
-public class Block implements IConvertableToBytes {
+public class Block<T extends Record> implements IConvertableToBytes {
+  private final T tDummyInstance;
   private Record[] records;
   private int blockingFactor;
-  private int byteSize;
-  private int validRecords;
+  private int validRecordsCount;
 
-  public Block(int blockingFactor) {
+  public Block(int blockingFactor, Class<T> tClass) {
     this.blockingFactor = blockingFactor;
-    this.byteSize = 0;
-    this.validRecords = 0;
+    this.validRecordsCount = 0;
     this.records = new Record[blockingFactor];
-    Arrays.fill(records, Record.getDummyInstance());
+    this.tDummyInstance = RecordFactory.createDummyInstance(tClass);
+    Arrays.fill(records, tDummyInstance);
   }
 
-  public Block() {
-    this.blockingFactor = 0;
-    this.byteSize = 0;
-    this.records = new Record[0];
-    this.validRecords = 0;
-  }
+  //  public Block() {
+  //    this.blockingFactor = 0;
+  //    this.records = new Record[0];
+  //    this.validRecordsCount = 0;
+  //  }
 
   public int getBlockingFactor() {
     return blockingFactor;
   }
 
   public int getByteSize() {
-    return byteSize;
+    return tDummyInstance.getByteSize() * blockingFactor;
   }
 
-  public int getValidRecords() {
-    return validRecords;
+  public Record[] getValidRecords() {
+    return Arrays.copyOfRange(records, 0, validRecordsCount);
+  }
+
+  public int getValidRecordsCount() {
+    return validRecordsCount;
+  }
+
+  public boolean hasFreeSpace() {
+    return blockingFactor - validRecordsCount > 0;
   }
 
   public Record getRecord(Record pRecord) {
@@ -56,17 +63,17 @@ public class Block implements IConvertableToBytes {
       throw new IllegalArgumentException("Cannot add null Record!");
     }
 
-    if (validRecords >= blockingFactor) {
+    if (validRecordsCount >= blockingFactor) {
       throw new IllegalStateException(
           String.format("Cannot add new Record! Blocking factor of %d exceeded!", blockingFactor));
     }
 
-    validRecords++;
-    records[validRecords - 1] = record;
+    validRecordsCount++;
+    records[validRecordsCount - 1] = record;
   }
 
   public void removeRecord(Record pRecord) {
-    if (validRecords == 0) {
+    if (validRecordsCount == 0) {
       throw new IllegalStateException("Cannot delete Record from empty block!");
     }
 
@@ -74,7 +81,7 @@ public class Block implements IConvertableToBytes {
       throw new IllegalArgumentException("Cannot remove null Record!");
     }
 
-    int lastValidRecordIndex = validRecords - 1;
+    int lastValidRecordIndex = validRecordsCount - 1;
     for (int i = 0; i < records.length; i++) {
       if (records[i].equals(pRecord)) {
         removeRecord(i, lastValidRecordIndex);
@@ -89,7 +96,7 @@ public class Block implements IConvertableToBytes {
       // swap with last valid record and decrease count
       swapRecords(i, lastValidRecordIndex);
     }
-    validRecords--;
+    validRecordsCount--;
   }
 
   private void swapRecords(int indexOfFirstItem, int indexOfSecondItem) {
@@ -98,8 +105,8 @@ public class Block implements IConvertableToBytes {
     records[indexOfSecondItem] = recordToSwap;
   }
 
-  private void initializeInvalidRecords() {
-    Arrays.fill(records, Record.getDummyInstance());
+  public void clear() {
+    Arrays.fill(records, tDummyInstance);
   }
 
   @Override
@@ -108,9 +115,9 @@ public class Block implements IConvertableToBytes {
         DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
 
       outputStream.writeInt(blockingFactor);
-      outputStream.writeInt(validRecords);
+      outputStream.writeInt(validRecordsCount);
 
-      int byteSizeOfOneRecord = Record.getByteSize();
+      int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       byte[] result = new byte[byteSizeOfOneRecord * blockingFactor];
       for (int i = 0; i < records.length; i++) {
         byte[] recordBytes = records[i].toByteArray();
@@ -131,9 +138,9 @@ public class Block implements IConvertableToBytes {
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
       blockingFactor = inputStream.readInt();
-      validRecords = inputStream.readInt();
+      validRecordsCount = inputStream.readInt();
 
-      int byteSizeOfOneRecord = Record.getByteSize();
+      int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       int numberOfRecordsInByteArray = byteArray.length / byteSizeOfOneRecord;
       records = new Record[numberOfRecordsInByteArray];
 
@@ -169,10 +176,10 @@ public class Block implements IConvertableToBytes {
     sb.append("Block - blocking factor: ")
         .append(blockingFactor)
         .append(" valid records: ")
-        .append(validRecords)
+        .append(validRecordsCount)
         .append("\n")
         .append("Records: ");
-    for (int i = 0; i < validRecords; i++) {
+    for (int i = 0; i < validRecordsCount; i++) {
       sb.append(records[i].toString()).append("\n");
     }
 

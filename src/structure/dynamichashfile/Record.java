@@ -2,21 +2,15 @@ package structure.dynamichashfile;
 
 import java.util.BitSet;
 
+/**
+ * Abstract class requiered for DynamicHashFile.
+ *
+ * <p>All classes extending it NEEDS TO IMPLEMENT static getDummyInstance method!
+ */
 public abstract class Record implements IConvertableToBytes {
-  protected static int BYTE_SIZE;
-  protected static Record DUMMY_INSTANCE;
-
-  public static int getByteSize() {
-    return BYTE_SIZE;
-  }
-
-  public static Record getDummyInstance() {
-    return DUMMY_INSTANCE;
-  }
+  public abstract int getByteSize();
 
   public abstract BitSet hash();
-
-  public abstract Record createDummyRecord();
 
   @Override
   public abstract byte[] toByteArray();

@@ -8,21 +8,20 @@ import java.util.ArrayList;
 import java.util.List;
 import structure.dynamichashfile.LimitedString;
 import structure.dynamichashfile.Record;
-import structure.dynamichashfile.constant.ElementByteSize;
 import structure.quadtree.IShapeData;
 
 public class Property extends SpatialData<Parcel> implements IShapeData {
+  public static final Property DUMMY_INSTANCE;
   private static final int MAX_DESCRIPTION_SIZE = 15;
   private static final int MAX_RELATED_PARCEL_LIST_SIZE = 6;
+  private static final int BYTE_SIZE = 103;
 
   static {
     Rectangle rectangle =
         new Rectangle(
             new GpsCoordinates(Direction.S, Integer.MIN_VALUE, Direction.W, Integer.MIN_VALUE),
             new GpsCoordinates(Direction.N, Integer.MIN_VALUE, Direction.E, Integer.MIN_VALUE));
-    Property property = new Property(Integer.MIN_VALUE, Integer.MIN_VALUE, "DUMMY", rectangle);
 
-    BYTE_SIZE = property.toByteArray().length;
     DUMMY_INSTANCE = new Property(Integer.MIN_VALUE, Integer.MIN_VALUE, "DUMMY", rectangle);
   }
 
@@ -107,6 +106,10 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
     return MAX_DESCRIPTION_SIZE;
   }
 
+  public static Record getDummyInstance() {
+    return DUMMY_INSTANCE;
+  }
+
   @Override
   public String toString() {
     return super.toString("Property");
@@ -121,8 +124,8 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
   }
 
   @Override
-  public Record createDummyRecord() {
-    return new Property();
+  public int getByteSize() {
+    return BYTE_SIZE;
   }
 
   @Override
@@ -141,7 +144,7 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
         outputStream.writeInt(spatialData.getIdentificationNumber());
       }
 
-      for(int i = 0; i < MAX_RELATED_PARCEL_LIST_SIZE - getRelatedDataList().size(); i++) {
+      for (int i = 0; i < MAX_RELATED_PARCEL_LIST_SIZE - getRelatedDataList().size(); i++) {
         outputStream.writeInt(Integer.MIN_VALUE);
       }
 
@@ -184,7 +187,7 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
       }
 
       // read relatedList zombie data
-      for(int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
+      for (int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
         inputStream.readInt();
       }
 
