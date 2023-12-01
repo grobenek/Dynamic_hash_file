@@ -22,12 +22,20 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     this.file = new File(path);
     this.blockingFactor = blockingFactor;
     this.tClass = tClass;
-    this.tDummyInstance = RecordFactory.createDummyInstance(tClass);
+    this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
 
     resetFile();
     this.fileStream = new RandomAccessFile(file, "rw");
 
     this.trie = new Trie(maxDepth);
+  }
+
+  private static <T extends Record> Record[] getDataToFill(T recordToInsert, Block<T> block) {
+    Record[] dataToFill = new Record[block.getValidRecordsCount() + 1];
+    Record[] validRecordsOfBlock = block.getValidRecords();
+    System.arraycopy(validRecordsOfBlock, 0, dataToFill, 0, validRecordsOfBlock.length);
+    dataToFill[dataToFill.length - 1] = recordToInsert;
+    return dataToFill;
   }
 
   private void resetFile() {
@@ -59,7 +67,12 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
   public T find(T recordToFind) {
     BitSet hash = recordToFind.hash();
 
-    long address = trie.getAddressOfData(hash);
+    long address = trie.getLeafOfData(hash).getAddressOfData();
+
+    if (address == INVALID_ADDRESS) {
+      throw new IllegalStateException(
+          String.format("Address for record %s was not found!", recordToFind));
+    }
 
     Block<T> block = getBlock(address);
 
@@ -67,8 +80,24 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
   }
 
   public void insert(T recordToInsert) {
+    // checking if hash file already contains the item
+    boolean isDuplicate;
+    try {
+      find(recordToInsert);
+      isDuplicate = true;
+    } catch (Exception e) {
+      isDuplicate = false;
+    }
+
+    if (isDuplicate) {
+      throw new IllegalStateException(
+          String.format(
+              "Cannot insert new item. DynamicHashFile already contains item %s", recordToInsert));
+    }
+
     BitSet hash = recordToInsert.hash();
-    long address = trie.getAddressOfData(hash);
+    LeafTrieNode leafOfData = trie.getLeafOfData(hash);
+    long address = leafOfData.getAddressOfData();
 
     if (address == INVALID_ADDRESS) {
       throw new IllegalStateException(
@@ -85,19 +114,17 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     }
 
     // no free space - expand Trie
-    Record[] dataToFill = new Record[block.getValidRecordsCount() + 1];
-    Record[] validRecordsOfBlock = block.getValidRecords();
-    System.arraycopy(validRecordsOfBlock, 0, dataToFill, 0, validRecordsOfBlock.length);
-    dataToFill[dataToFill.length - 1] = recordToInsert;
+    Record[] dataToFill = getDataToFill(recordToInsert, block);
 
-    trie.expandLeafByHash(hash, dataToFill);
+    trie.expandLeafByHash(hash, dataToFill, leafOfData);
   }
 
   private Block<T> getBlock(long address) {
     try {
       fileStream.seek(address);
       Block<T> block = new Block<>(blockingFactor, tClass);
-      byte[] blockBytes = new byte[tDummyInstance.getByteSize() * blockingFactor];
+      byte[] blockBytes = new byte[block.getByteSize()];
+      // popripade mozno netreba ani zapisovat blokovaci faktor
       fileStream.read(blockBytes);
       block.fromByteArray(blockBytes);
 
@@ -189,7 +216,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       this.maxDepth = maxDepth;
     }
 
-    private long getAddressOfData(BitSet hash) {
+    private LeafTrieNode getLeafOfData(BitSet hash) {
       int currentBitSetIndex = 0;
       TrieNode currentNode = root;
       TrieNode parent;
@@ -210,10 +237,10 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           continue;
         }
 
-        return ((LeafTrieNode) currentNode).getAddressOfData();
+        return ((LeafTrieNode) currentNode);
       } while (currentBitSetIndex != hash.size());
 
-      return INVALID_ADDRESS;
+      return LeafTrieNode.getInvalidAddressNode();
     }
 
     private LeafTrieNode createLeafNode(InnerTrieNode parent, boolean isLeftSon) {
@@ -231,8 +258,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       return createdNode;
     }
 
-    public void expandLeafByHash(BitSet hash, Record[] dataToFill) {
-      TrieNode leaf = getLeafOfHash(hash);
+    public void expandLeafByHash(BitSet hash, Record[] dataToFill, LeafTrieNode leafOfData) {
+      LeafTrieNode leaf = leafOfData;
       InnerTrieNode parentOfOriginalLeaf = (InnerTrieNode) leaf.getParent();
       while (true) {
         InnerTrieNode newTransformedInnerNode = new InnerTrieNode(parentOfOriginalLeaf, maxDepth);
@@ -311,26 +338,6 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         }
       }
       return blockIsFullFlag;
-    }
-
-    private LeafTrieNode getLeafOfHash(BitSet hash) {
-      int currentBitSetIndex = 0;
-      TrieNode currentNode = root;
-      do {
-        currentNode =
-            hash.get(currentBitSetIndex)
-                ? ((InnerTrieNode) currentNode).getLeftSon()
-                : ((InnerTrieNode) currentNode).getRightSon();
-
-        if (currentNode instanceof InnerTrieNode) {
-          currentBitSetIndex++;
-          continue;
-        }
-
-        return ((LeafTrieNode) currentNode);
-      } while (currentBitSetIndex != hash.size());
-
-      throw new IllegalStateException(String.format("LeafNode of hash %s was not found!", hash));
     }
   }
 }

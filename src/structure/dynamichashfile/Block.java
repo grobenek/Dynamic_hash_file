@@ -15,22 +15,16 @@ public class Block<T extends Record> implements IConvertableToBytes {
     this.blockingFactor = blockingFactor;
     this.validRecordsCount = 0;
     this.records = new Record[blockingFactor];
-    this.tDummyInstance = RecordFactory.createDummyInstance(tClass);
+    this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
     Arrays.fill(records, tDummyInstance);
   }
-
-  //  public Block() {
-  //    this.blockingFactor = 0;
-  //    this.records = new Record[0];
-  //    this.validRecordsCount = 0;
-  //  }
 
   public int getBlockingFactor() {
     return blockingFactor;
   }
 
   public int getByteSize() {
-    return tDummyInstance.getByteSize() * blockingFactor;
+    return tDummyInstance.getByteSize() * blockingFactor + (2 * ElementByteSize.intByteSize());
   }
 
   public Record[] getValidRecords() {

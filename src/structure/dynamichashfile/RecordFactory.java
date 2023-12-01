@@ -6,7 +6,7 @@ public class RecordFactory {
 
   private RecordFactory() {}
 
-  public static <T extends Record> T createDummyInstance(Class<? extends Record> recordClass) {
+  public static <T extends Record> T getDummyInstance(Class<? extends Record> recordClass) {
     if (recordClass == null) {
       throw new IllegalArgumentException("Cannot create dummy instance of null class!");
     }

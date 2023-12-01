@@ -1,5 +1,7 @@
 package entity;
 
+import structure.dynamichashfile.constant.ElementByteSize;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -15,7 +17,7 @@ public class SpatialDataFactory {
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
 
       SpatialDataType className = SpatialDataType.values()[inputStream.readInt()];
-      int bytesRead = 4;
+      int bytesRead = ElementByteSize.intByteSize();
 
       switch (className) {
         case PROPERTY -> {
