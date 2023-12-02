@@ -6,10 +6,14 @@ import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
 
 public class Block<T extends Record> implements IConvertableToBytes {
+  private static final int INVALID_ADDRESS = -1;
   private final T tDummyInstance;
+  private final int blockingFactor;
   private Record[] records;
-  private int blockingFactor;
   private int validRecordsCount;
+  private long addressOfOverflowBlock;
+  private long previousFreeBlockAddress;
+  private long nextFreeBlockAddress;
 
   public Block(int blockingFactor, Class<T> tClass) {
     this.blockingFactor = blockingFactor;
@@ -17,6 +21,13 @@ public class Block<T extends Record> implements IConvertableToBytes {
     this.records = new Record[blockingFactor];
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
     Arrays.fill(records, tDummyInstance);
+
+    this.previousFreeBlockAddress = INVALID_ADDRESS;
+    this.nextFreeBlockAddress = INVALID_ADDRESS;
+  }
+
+  public static int getInvalidAddress() {
+    return INVALID_ADDRESS;
   }
 
   public int getBlockingFactor() {
@@ -24,7 +35,7 @@ public class Block<T extends Record> implements IConvertableToBytes {
   }
 
   public int getByteSize() {
-    return tDummyInstance.getByteSize() * blockingFactor + (2 * ElementByteSize.intByteSize());
+    return tDummyInstance.getByteSize() * blockingFactor + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3));
   }
 
   public Record[] getValidRecords() {
@@ -33,6 +44,26 @@ public class Block<T extends Record> implements IConvertableToBytes {
 
   public int getValidRecordsCount() {
     return validRecordsCount;
+  }
+
+  public long getAddressOfOverflowBlock() {
+    return addressOfOverflowBlock;
+  }
+
+  public long getPreviousFreeBlockAddress() {
+    return previousFreeBlockAddress;
+  }
+
+  public void setPreviousFreeBlockAddress(long address) {
+    previousFreeBlockAddress = address;
+  }
+
+  public long getNextFreeBlockAddress() {
+    return nextFreeBlockAddress;
+  }
+
+  public void setNextFreeBlockAddress(long address) {
+    nextFreeBlockAddress = address;
   }
 
   public boolean hasFreeSpace() {
@@ -44,11 +75,12 @@ public class Block<T extends Record> implements IConvertableToBytes {
       throw new IllegalArgumentException("Cannot search null Record!");
     }
 
-    for (Record record : records) {
-      if (record.equals(pRecord)) {
-        return record;
+      for (int i = 0; i < validRecordsCount; i++) {
+          Record record = records[i];
+          if (record.equals(pRecord)) {
+              return record;
+          }
       }
-    }
     throw new IllegalArgumentException(String.format("Record %s was not found!", pRecord));
   }
 
@@ -101,6 +133,7 @@ public class Block<T extends Record> implements IConvertableToBytes {
 
   public void clear() {
     Arrays.fill(records, tDummyInstance);
+    validRecordsCount = 0;
   }
 
   @Override
@@ -108,8 +141,10 @@ public class Block<T extends Record> implements IConvertableToBytes {
     try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream)) {
 
-      outputStream.writeInt(blockingFactor);
       outputStream.writeInt(validRecordsCount);
+      outputStream.writeLong(addressOfOverflowBlock);
+      outputStream.writeLong(previousFreeBlockAddress);
+      outputStream.writeLong(nextFreeBlockAddress);
 
       int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       byte[] result = new byte[byteSizeOfOneRecord * blockingFactor];
@@ -131,8 +166,11 @@ public class Block<T extends Record> implements IConvertableToBytes {
 
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
-      blockingFactor = inputStream.readInt();
+
       validRecordsCount = inputStream.readInt();
+      addressOfOverflowBlock = inputStream.readLong();
+      previousFreeBlockAddress = inputStream.readLong();
+      nextFreeBlockAddress = inputStream.readLong();
 
       int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       int numberOfRecordsInByteArray = byteArray.length / byteSizeOfOneRecord;
@@ -153,8 +191,8 @@ public class Block<T extends Record> implements IConvertableToBytes {
             SpatialDataFactory.fromByteArray(
                 Arrays.copyOfRange(
                     byteArray,
-                    (ElementByteSize.intByteSize() * 2) + i,
-                    ((ElementByteSize.intByteSize() * 2) + i) + byteSizeOfOneRecord));
+                    (ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 3) + i,
+                    ((ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 3) + i) + byteSizeOfOneRecord));
         records[counter] = record;
         counter++;
       }
@@ -173,9 +211,10 @@ public class Block<T extends Record> implements IConvertableToBytes {
         .append(validRecordsCount)
         .append("\n")
         .append("Records: ");
-    for (int i = 0; i < validRecordsCount; i++) {
-      sb.append(records[i].toString()).append("\n");
-    }
+//    for (int i = 0; i < validRecordsCount; i++) {
+//      sb.append(records[i].toString()).append("\n");
+//    }
+    sb.append(";\n");
 
     return sb.toString();
   }

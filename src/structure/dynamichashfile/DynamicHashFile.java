@@ -2,30 +2,52 @@ package structure.dynamichashfile;
 
 import java.io.*;
 import java.util.BitSet;
-import java.util.Stack;
 import structure.dynamichashfile.constant.ElementByteSize;
 import structure.dynamichashfile.trie.*;
 
 public class DynamicHashFile<T extends Record> implements AutoCloseable {
-  private static final int INVALID_ADDRESS = -1;
-  private final String path;
-  private final File file;
-  private final RandomAccessFile fileStream;
-  private final int blockingFactor;
+  private static final int INVALID_ADDRESS = Block.getInvalidAddress();
+  private final String pathToMainFile;
+  private final String pathToOverflowFile;
+  private final File mainFile;
+  private final File overflowFile;
+  private final RandomAccessFile mainFileStream;
+  private final RandomAccessFile overflowFileStream;
+  private final int mainFileBlockingFactor;
+  private final int overflowFileBlockingFactor;
   private final Trie trie;
   private final Class<T> tClass;
   private final T tDummyInstance;
+  private long firstFreeBlockAddressFromMainFile;
+  private long firstFreeBlockAddressFromOverflowFile;
 
-  public DynamicHashFile(String path, int blockingFactor, int maxDepth, Class<T> tClass)
+  public DynamicHashFile(
+      String pathToMainFile,
+      String pathToOverflowFile,
+      int blockingFactorOfMainFile,
+      int blockingFactorOfOverflowFile,
+      int maxDepth,
+      Class<T> tClass)
       throws FileNotFoundException {
-    this.path = path;
-    this.file = new File(path);
-    this.blockingFactor = blockingFactor;
+    this.pathToMainFile = pathToMainFile;
+    this.mainFile = new File(pathToMainFile);
+    this.mainFileBlockingFactor = blockingFactorOfMainFile;
+
+    this.pathToOverflowFile = pathToOverflowFile;
+    this.overflowFile = new File(pathToOverflowFile);
+    this.overflowFileBlockingFactor = blockingFactorOfOverflowFile;
+
+    this.firstFreeBlockAddressFromMainFile = INVALID_ADDRESS;
+    this.firstFreeBlockAddressFromOverflowFile = INVALID_ADDRESS;
+
     this.tClass = tClass;
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
 
-    resetFile();
-    this.fileStream = new RandomAccessFile(file, "rw");
+    resetFile(mainFile);
+    resetFile(overflowFile);
+
+    this.mainFileStream = new RandomAccessFile(mainFile, "rw");
+    this.overflowFileStream = new RandomAccessFile(overflowFile, "rw");
 
     this.trie = new Trie(maxDepth);
   }
@@ -38,7 +60,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     return dataToFill;
   }
 
-  private void resetFile() {
+  private void resetFile(File file) {
     try {
       if (file.exists()) {
         file.delete();
@@ -52,16 +74,45 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
 
   private long getNewBlockAddress() {
     try {
-      long fileLength = fileStream.length();
-      fileStream.setLength(
-          fileLength
-              + ((long) tDummyInstance.getByteSize() * blockingFactor
-                  + (ElementByteSize.intByteSize() * 2L)));
+      if (firstFreeBlockAddressFromMainFile == INVALID_ADDRESS) {
+        long fileLength = mainFileStream.length();
+        mainFileStream.setLength(
+            fileLength
+                + ((long) tDummyInstance.getByteSize() * mainFileBlockingFactor
+                    + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3L))));
 
-      return fileLength;
+        return fileLength;
+      } else {
+        return getAddressFromFreeBlocks();
+      }
     } catch (IOException e) {
       throw new RuntimeException("New block cannot been created! Message: " + e);
     }
+  }
+
+  private long getAddressFromFreeBlocks() {
+    long freeBlockAddress = firstFreeBlockAddressFromMainFile;
+    Block<T> freeBlock = getBlock(freeBlockAddress);
+    long nextFreeBlockAddress = freeBlock.getNextFreeBlockAddress();
+
+    if (nextFreeBlockAddress == INVALID_ADDRESS) {
+      freeBlock.setNextFreeBlockAddress(INVALID_ADDRESS);
+      writeBlock(freeBlock, freeBlockAddress);
+      firstFreeBlockAddressFromMainFile = INVALID_ADDRESS;
+
+      return freeBlockAddress;
+    }
+
+    Block<T> secondFreeBlock = getBlock(nextFreeBlockAddress);
+
+    freeBlock.setNextFreeBlockAddress(INVALID_ADDRESS);
+    secondFreeBlock.setPreviousFreeBlockAddress(INVALID_ADDRESS);
+
+    writeBlock(freeBlock, freeBlockAddress);
+    writeBlock(secondFreeBlock, nextFreeBlockAddress);
+
+    firstFreeBlockAddressFromMainFile = nextFreeBlockAddress;
+    return freeBlockAddress;
   }
 
   public T find(T recordToFind) {
@@ -79,7 +130,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     return (T) block.getRecord(recordToFind);
   }
 
-  public void insert(T recordToInsert) {
+  public void insert(T recordToInsert) throws IOException {
     // checking if hash file already contains the item
     boolean isDuplicate;
     try {
@@ -110,22 +161,44 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     if (block.hasFreeSpace()) {
       block.addRecord(recordToInsert);
       writeBlock(block, address);
+      leafOfData.addDataInMainBlock(); // TODO zmenit a dat pozor ci aj nie do preplnujuceho
       return;
     }
 
     // no free space - expand Trie
     Record[] dataToFill = getDataToFill(recordToInsert, block);
 
-    trie.expandLeafByHash(hash, dataToFill, leafOfData);
+    trie.expandLeafByHash(dataToFill, leafOfData);
+  }
+
+  public void delete(T recordToDelete) throws IOException {
+    BitSet hash = recordToDelete.hash();
+
+    LeafTrieNode leafOfData = trie.getLeafOfData(hash);
+    long address = leafOfData.getAddressOfData();
+
+    if (address == INVALID_ADDRESS) {
+      throw new IllegalStateException(
+          String.format("Address for record %s was not found!", recordToDelete));
+    }
+
+    Block<T> block = getBlock(address);
+
+    block.removeRecord(recordToDelete);
+
+    leafOfData.removeDataInMainBlock();
+
+    writeBlock(block, address);
+
+    trie.shrinkIfNeeded((InnerTrieNode) leafOfData.getParent());
   }
 
   private Block<T> getBlock(long address) {
     try {
-      fileStream.seek(address);
-      Block<T> block = new Block<>(blockingFactor, tClass);
+      mainFileStream.seek(address);
+      Block<T> block = new Block<>(mainFileBlockingFactor, tClass);
       byte[] blockBytes = new byte[block.getByteSize()];
-      // popripade mozno netreba ani zapisovat blokovaci faktor
-      fileStream.read(blockBytes);
+      mainFileStream.read(blockBytes);
       block.fromByteArray(blockBytes);
 
       return block;
@@ -139,8 +212,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
 
   private void createBlock(long address) {
     try {
-      fileStream.seek(address);
-      fileStream.write(new Block<>(blockingFactor, tClass).toByteArray());
+      mainFileStream.seek(address);
+      mainFileStream.write(new Block<>(mainFileBlockingFactor, tClass).toByteArray());
     } catch (IOException e) {
       throw new RuntimeException(
           String.format(
@@ -151,8 +224,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
 
   private void writeBlock(Block<T> block, long address) {
     try {
-      fileStream.seek(address);
-      fileStream.write(block.toByteArray());
+      mainFileStream.seek(address);
+      mainFileStream.write(block.toByteArray());
 
     } catch (IOException e) {
       throw new RuntimeException(
@@ -162,38 +235,85 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     }
   }
 
-  public String sequenceToString() {
-    StringBuilder sb = new StringBuilder();
-    Stack<TrieNode> stack = new Stack<>();
+  private void deleteBlock(LeafTrieNode nodeOfData) throws IOException {
+    long addressOfData = nodeOfData.getAddressOfData();
+    Block<T> blockToDelete = getBlock(addressOfData);
 
-    stack.push(trie.root);
+    if (isBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
+      // block is on the end of a file - set new length of file
+      mainFileStream.setLength(addressOfData);
+    } else {
+      // block is in the middle - clear it and put it in free blocks
+      nodeOfData.removeDataInMainBlock(nodeOfData.getDataSizeInMainBlock());
+      blockToDelete.clear();
+      writeBlock(blockToDelete, addressOfData);
 
-    while (!stack.isEmpty()) {
-      TrieNode currentNode = stack.pop();
-
-      if (currentNode instanceof LeafTrieNode) {
-        sb.append(getBlock(((LeafTrieNode) currentNode).getAddressOfData()));
-      }
-
-      if (currentNode instanceof InnerTrieNode) {
-        TrieNode leftSon = ((InnerTrieNode) currentNode).getLeftSon();
-        TrieNode rightSon = ((InnerTrieNode) currentNode).getRightSon();
-
-        if (leftSon != null) {
-          stack.push(leftSon);
-        }
-
-        if (rightSon != null) {
-          stack.push(rightSon);
-        }
-      }
+      setBlockAsFirstFreeBlock(addressOfData, blockToDelete);
     }
+  }
+
+  private void setBlockAsFirstFreeBlock(long addressOfData, Block<T> blockToDelete) {
+    if (firstFreeBlockAddressFromMainFile == INVALID_ADDRESS) {
+      firstFreeBlockAddressFromMainFile = addressOfData;
+      return;
+    }
+
+    Block<T> firstFreeBlock = getBlock(firstFreeBlockAddressFromMainFile);
+    firstFreeBlock.setPreviousFreeBlockAddress(addressOfData);
+    blockToDelete.setNextFreeBlockAddress(firstFreeBlockAddressFromMainFile);
+    firstFreeBlockAddressFromMainFile = addressOfData;
+
+    writeBlock(blockToDelete, addressOfData);
+  }
+
+  private boolean isBlockOnTheEndOfFile(long address, Block<T> blockToCheck) throws IOException {
+    return address + blockToCheck.getByteSize() == mainFileStream.length();
+  }
+
+  public String sequenceToString() throws IOException {
+    StringBuilder sb = new StringBuilder();
+    //        Stack<TrieNode> stack = new Stack<>();
+    //
+    //        stack.push(trie.root);
+    //
+    //        while (!stack.isEmpty()) {
+    //          TrieNode currentNode = stack.pop();
+    //
+    //          if (currentNode instanceof LeafTrieNode) {
+    //            sb.append(getBlock(((LeafTrieNode) currentNode).getAddressOfData()));
+    //          }
+    //
+    //          if (currentNode instanceof InnerTrieNode) {
+    //            TrieNode leftSon = ((InnerTrieNode) currentNode).getLeftSon();
+    //            TrieNode rightSon = ((InnerTrieNode) currentNode).getRightSon();
+    //
+    //            if (leftSon != null) {
+    //              stack.push(leftSon);
+    //            }
+    //
+    //            if (rightSon != null) {
+    //              stack.push(rightSon);
+    //            }
+    //          }
+    //        }
+
+    for (long i = 0, fileLength = mainFileStream.length();
+        i < fileLength;
+        i +=
+            ((long) tDummyInstance.getByteSize() * mainFileBlockingFactor
+                + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3L)))) {
+      Block<T> block = getBlock(i);
+
+      sb.append(i).append(" ").append(block);
+    }
+
     return sb.toString();
   }
 
   @Override
   public void close() throws Exception {
-    fileStream.close();
+    mainFileStream.close();
+    overflowFileStream.close();
   }
 
   private class Trie {
@@ -214,6 +334,13 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       createBlock(rightSonAddress);
 
       this.maxDepth = maxDepth;
+    }
+
+    private static <T extends Record> void fillBlockFromOtherBlock(
+        Block<T> blockToFill, Block<T> blockToFillFrom) {
+      for (Record validRecord : blockToFillFrom.getValidRecords()) {
+        blockToFill.addRecord(validRecord);
+      }
     }
 
     private LeafTrieNode getLeafOfData(BitSet hash) {
@@ -238,7 +365,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         }
 
         return ((LeafTrieNode) currentNode);
-      } while (currentBitSetIndex != hash.size());
+      } while (currentBitSetIndex
+          != hash.size()); // TODO toto pozriet potom ci nedat do preplnujuceho
 
       return LeafTrieNode.getInvalidAddressNode();
     }
@@ -258,10 +386,14 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       return createdNode;
     }
 
-    public void expandLeafByHash(BitSet hash, Record[] dataToFill, LeafTrieNode leafOfData) {
+    public void expandLeafByHash(Record[] dataToFill, LeafTrieNode leafOfData) throws IOException {
       LeafTrieNode leaf = leafOfData;
       InnerTrieNode parentOfOriginalLeaf = (InnerTrieNode) leaf.getParent();
+
       while (true) {
+        long addressOfData = leaf.getAddressOfData();
+        Block<T> blockOfNodeToExpand = getBlock(addressOfData);
+
         InnerTrieNode newTransformedInnerNode = new InnerTrieNode(parentOfOriginalLeaf, maxDepth);
 
         LeafTrieNode leftSon = new LeafTrieNode(leaf, maxDepth);
@@ -275,12 +407,19 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           parentOfOriginalLeaf.setRightSon(newTransformedInnerNode);
         }
 
-        Block<T> leftSonBlock = new Block<>(blockingFactor, tClass);
-        Block<T> rightSonBlock = new Block<>(blockingFactor, tClass);
+        Block<T> leftSonBlock = new Block<>(mainFileBlockingFactor, tClass);
+        Block<T> rightSonBlock = new Block<>(mainFileBlockingFactor, tClass);
 
         boolean blockIsFull =
             fillBlocksByBits(
-                dataToFill, leftSonBlock, rightSonBlock, newTransformedInnerNode.getDepth());
+                dataToFill,
+                leftSonBlock,
+                rightSonBlock,
+                newTransformedInnerNode.getDepth(),
+                leftSon,
+                rightSon);
+
+        deleteBlock(leafOfData);
 
         if (blockIsFull) {
           if (leftSonBlock.getValidRecordsCount() == 0) {
@@ -312,7 +451,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           leftSon.setAddressOfData(getNewBlockAddress());
           writeBlock(leftSonBlock, leftSon.getAddressOfData());
         }
-
+        // TODO spravit preplnujuci subor - daj volny blok a zrus blok. Kazdy blok ma referenciu na
+        // preplnujuci blok.
         if (rightSonBlock.getValidRecordsCount() > 0) {
           rightSon.setAddressOfData(getNewBlockAddress());
           writeBlock(rightSonBlock, rightSon.getAddressOfData());
@@ -323,14 +463,21 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     }
 
     private boolean fillBlocksByBits(
-        Record[] dataToFill, Block<T> leftSonBlock, Block<T> rightSonBlock, int depth) {
+        Record[] dataToFill,
+        Block<T> leftSonBlock,
+        Block<T> rightSonBlock,
+        int depth,
+        LeafTrieNode leftSon,
+        LeafTrieNode rightSon) {
       boolean blockIsFullFlag = false;
       for (Record record : dataToFill) {
         try {
           if (record.hash().get(depth)) {
             leftSonBlock.addRecord(record);
+            leftSon.addDataInMainBlock();
           } else {
             rightSonBlock.addRecord(record);
+            rightSon.addDataInMainBlock();
           }
         } catch (IllegalStateException e) {
           blockIsFullFlag = true;
@@ -338,6 +485,112 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         }
       }
       return blockIsFullFlag;
+    }
+
+    private void shrinkLeaves(InnerTrieNode parentNodeToShrink) throws IOException {
+      LeafTrieNode leftChild = (LeafTrieNode) parentNodeToShrink.getLeftSon();
+      LeafTrieNode rightChild = (LeafTrieNode) parentNodeToShrink.getRightSon();
+
+      if (leftChild.hasItemsInOverflowBlock()) {
+        throw new IllegalStateException(
+            String.format(
+                "Cannot shrink children of paretNode %s! At least one child has items in overflow block!",
+                parentNodeToShrink));
+      }
+
+      int itemCountOfChildren =
+          leftChild.getDataSizeInMainBlock() + rightChild.getDataSizeInMainBlock();
+      if (itemCountOfChildren > mainFileBlockingFactor) {
+        throw new IllegalStateException(
+            String.format(
+                "Cannot shrink children of parentNode %s! Children item size: %d, blocking factor: %d",
+                parentNodeToShrink, itemCountOfChildren, mainFileBlockingFactor));
+      }
+
+      // shrink children into parent
+      InnerTrieNode parentOfParent = (InnerTrieNode) parentNodeToShrink.getParent();
+
+      if (parentOfParent == null) {
+        throw new IllegalStateException("Cannot shrink root!");
+      }
+
+      LeafTrieNode newParentToShrinkChildrenInto =
+          new LeafTrieNode(parentOfParent, parentOfParent.getDepth() + 1);
+
+      // updating reference to new parent
+      if (parentOfParent.getLeftSon() == parentNodeToShrink) {
+        parentOfParent.setLeftSon(newParentToShrinkChildrenInto);
+      } else if (parentOfParent.getRightSon() == parentNodeToShrink) {
+        parentOfParent.setRightSon(newParentToShrinkChildrenInto);
+      } else {
+        throw new IllegalStateException(
+            String.format(
+                "Cannot shrink children of paretnNode %s! Parent node is not child of his parent %s!",
+                parentNodeToShrink, parentOfParent));
+      }
+
+      long addressOfNewParent = getNewBlockAddress();
+      createBlock(addressOfNewParent);
+      newParentToShrinkChildrenInto.setAddressOfData(addressOfNewParent);
+
+      // refill items from children to new parent
+      long leftChildAddress = leftChild.getAddressOfData();
+      long rightChildAddress = rightChild.getAddressOfData();
+
+      Block<T> leftChildBlock = getBlock(leftChildAddress);
+      Block<T> rightChildBlock = getBlock(rightChildAddress);
+
+      Block<T> newBlock = getBlock(addressOfNewParent);
+      fillBlockFromOtherBlock(newBlock, leftChildBlock);
+      fillBlockFromOtherBlock(newBlock, rightChildBlock);
+
+      newParentToShrinkChildrenInto.addDataInMainBlock(itemCountOfChildren);
+
+      writeBlock(newBlock, addressOfNewParent);
+
+      deleteBlock(leftChild);
+      deleteBlock(rightChild);
+    }
+
+    public void shrinkIfNeeded(InnerTrieNode nodeToShrink) throws IOException {
+      if (nodeToShrink == null) {
+        return;
+      }
+
+      InnerTrieNode currentNode = nodeToShrink;
+      while (currentNode != null) {
+        boolean canShrinkIntoParent = isAbleToShrinkIntoParent(currentNode);
+
+        if (!canShrinkIntoParent) {
+          break;
+        }
+
+        try {
+          shrinkLeaves(currentNode);
+        } catch (IllegalStateException e) {
+          break;
+        }
+
+        currentNode = (InnerTrieNode) currentNode.getParent();
+      }
+    }
+
+    private boolean isAbleToShrinkIntoParent(InnerTrieNode currentNode) {
+      LeafTrieNode leftChild = (LeafTrieNode) currentNode.getLeftSon();
+      LeafTrieNode rightChild = (LeafTrieNode) currentNode.getRightSon();
+
+      int leftChildSize = leftChild != null ? leftChild.getDataSizeInMainBlock() : 0;
+      int rightChildSize = rightChild != null ? rightChild.getDataSizeInMainBlock() : 0;
+
+      int itemCountOfChildren =
+          leftChildSize + rightChildSize;
+
+      boolean leftChildOverflowBlock = leftChild != null && !leftChild.hasItemsInOverflowBlock();
+      boolean rightChildOverflowBlock = rightChild != null && !rightChild.hasItemsInOverflowBlock();
+
+      return itemCountOfChildren <= mainFileBlockingFactor
+          && leftChildOverflowBlock
+          && rightChildOverflowBlock;
     }
   }
 }

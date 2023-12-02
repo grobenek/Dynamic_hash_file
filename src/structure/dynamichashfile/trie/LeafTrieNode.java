@@ -1,14 +1,15 @@
 package structure.dynamichashfile.trie;
 
 public class LeafTrieNode extends TrieNode {
-  private long addressOfData;
   private static final LeafTrieNode INVALID_ADDRESS_NODE;
-  private int dataSizeInMainBlock;
-  private int dataSizeInReserveBlocks;
 
   static {
     INVALID_ADDRESS_NODE = new LeafTrieNode(null, INVALID_ADDRESS);
   }
+
+  private long addressOfData;
+  private int dataSizeInMainBlock;
+  private int dataSizeInReserveBlocks;
 
   public LeafTrieNode(TrieNode parent, long addressOfData, int maxDepth) {
     super(parent, maxDepth);
@@ -28,12 +29,20 @@ public class LeafTrieNode extends TrieNode {
     dataSizeInMainBlock++;
   }
 
+  public void addDataInMainBlock(int count) {
+    dataSizeInMainBlock += count;
+  }
+
   public void addDataInReserveBlocks() {
     dataSizeInReserveBlocks++;
   }
 
   public void removeDataInMainBlock() {
     dataSizeInMainBlock--;
+  }
+
+  public void removeDataInMainBlock(int count) {
+    dataSizeInMainBlock -= count;
   }
 
   public void removeDataInReserveBlcok() {
@@ -55,5 +64,9 @@ public class LeafTrieNode extends TrieNode {
   public LeafTrieNode setAddressOfData(long addressOfData) {
     this.addressOfData = addressOfData;
     return this;
+  }
+
+  public boolean hasItemsInOverflowBlock() {
+    return dataSizeInReserveBlocks != 0;
   }
 }

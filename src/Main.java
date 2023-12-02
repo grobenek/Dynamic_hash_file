@@ -49,7 +49,7 @@ public class Main {
     Property property8 = new Property(894171343, 467, "testicek7", rectangle, List.of(parcel));
 
     try (DynamicHashFile<Property> dynamicHashFile =
-        new DynamicHashFile<>("test.sz", 5, 10, Property.class)) {
+        new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, 10, Property.class)) {
       dynamicHashFile.insert(property);
       dynamicHashFile.insert(property2);
       dynamicHashFile.insert(property3);
@@ -59,9 +59,15 @@ public class Main {
       dynamicHashFile.insert(property7);
       dynamicHashFile.insert(property8);
 
-      System.out.println(dynamicHashFile.sequenceToString());
+      //      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
 
-      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
+      System.out.println("BEFORE DELETE: " + dynamicHashFile.sequenceToString());
+
+      dynamicHashFile.delete(property2);
+
+      System.out.println("AFTER DELETE: " + dynamicHashFile.sequenceToString());
+
+      //      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

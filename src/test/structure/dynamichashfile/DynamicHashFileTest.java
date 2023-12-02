@@ -33,7 +33,7 @@ class DynamicHashFileTest {
       }
 
       try (DynamicHashFile<Property> dynamicHashFile =
-          new DynamicHashFile<>("test.sz", 5, 10, Property.class)) {
+          new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, 10, Property.class)) {
         for (int i = 0; i < NUMBER_OF_PROPERTIES; i++) {
           dynamicHashFile.insert(propertyList.get(i));
         }
