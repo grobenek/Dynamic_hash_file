@@ -45,11 +45,15 @@ public class LeafTrieNode extends TrieNode {
     dataSizeInMainBlock -= count;
   }
 
-  public void removeDataInReserveBlcok() {
+  public void removeDataInReserveBlock() {
     dataSizeInReserveBlocks--;
   }
 
-  public int getDataSizeInMainBlock() {
+  public void removeDataInReserveBlock(int count) {
+    dataSizeInReserveBlocks -= count;
+  }
+
+  public int getDataSizeInOverflowBlock() {
     return dataSizeInMainBlock;
   }
 
@@ -68,5 +72,9 @@ public class LeafTrieNode extends TrieNode {
 
   public boolean hasItemsInOverflowBlock() {
     return dataSizeInReserveBlocks != 0;
+  }
+
+  public void addDataInReserveBlocks(int count) {
+    dataSizeInReserveBlocks += count;
   }
 }

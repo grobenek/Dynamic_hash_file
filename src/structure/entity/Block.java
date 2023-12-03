@@ -14,6 +14,8 @@ public class Block<T extends Record> implements IConvertableToBytes {
   private Record[] records;
   private int validRecordsCount;
   private long addressOfOverflowBlock;
+  private long nextOverflowBlockAddress;
+  private long previousOverflowBlockAddress;
   private long previousFreeBlockAddress;
   private long nextFreeBlockAddress;
 
@@ -24,6 +26,10 @@ public class Block<T extends Record> implements IConvertableToBytes {
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
     Arrays.fill(records, tDummyInstance);
 
+    this.addressOfOverflowBlock = INVALID_ADDRESS;
+    this.nextOverflowBlockAddress = INVALID_ADDRESS;
+    this.previousOverflowBlockAddress = INVALID_ADDRESS;
+
     this.previousFreeBlockAddress = INVALID_ADDRESS;
     this.nextFreeBlockAddress = INVALID_ADDRESS;
   }
@@ -32,12 +38,31 @@ public class Block<T extends Record> implements IConvertableToBytes {
     return INVALID_ADDRESS;
   }
 
+  public long getNextOverflowBlockAddress() {
+    return nextOverflowBlockAddress;
+  }
+
+  public Block<T> setNextOverflowBlockAddress(long nextOverflowBlockAddress) {
+    this.nextOverflowBlockAddress = nextOverflowBlockAddress;
+    return this;
+  }
+
+  public long getPreviousOverflowBlockAddress() {
+    return previousOverflowBlockAddress;
+  }
+
+  public Block<T> setPreviousOverflowBlockAddress(long previousOverflowBlockAddress) {
+    this.previousOverflowBlockAddress = previousOverflowBlockAddress;
+    return this;
+  }
+
   public int getBlockingFactor() {
     return blockingFactor;
   }
 
   public int getByteSize() {
-    return tDummyInstance.getByteSize() * blockingFactor + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3));
+    return tDummyInstance.getByteSize() * blockingFactor
+        + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5));
   }
 
   public Record[] getValidRecords() {
@@ -50,6 +75,11 @@ public class Block<T extends Record> implements IConvertableToBytes {
 
   public long getAddressOfOverflowBlock() {
     return addressOfOverflowBlock;
+  }
+
+  public Block<T> setAddressOfOverflowBlock(long addressOfOverflowBlock) {
+    this.addressOfOverflowBlock = addressOfOverflowBlock;
+    return this;
   }
 
   public long getPreviousFreeBlockAddress() {
@@ -77,13 +107,13 @@ public class Block<T extends Record> implements IConvertableToBytes {
       throw new IllegalArgumentException("Cannot search null Record!");
     }
 
-      for (int i = 0; i < validRecordsCount; i++) {
-          Record record = records[i];
-          if (record.equals(pRecord)) {
-              return record;
-          }
+    for (int i = 0; i < validRecordsCount; i++) {
+      Record record = records[i];
+      if (record.equals(pRecord)) {
+        return record;
       }
-    throw new IllegalArgumentException(String.format("Record %s was not found!", pRecord));
+    }
+    return null;
   }
 
   public void addRecord(Record record) {
@@ -147,6 +177,8 @@ public class Block<T extends Record> implements IConvertableToBytes {
       outputStream.writeLong(addressOfOverflowBlock);
       outputStream.writeLong(previousFreeBlockAddress);
       outputStream.writeLong(nextFreeBlockAddress);
+      outputStream.writeLong(nextOverflowBlockAddress);
+      outputStream.writeLong(previousOverflowBlockAddress);
 
       int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       byte[] result = new byte[byteSizeOfOneRecord * blockingFactor];
@@ -173,6 +205,8 @@ public class Block<T extends Record> implements IConvertableToBytes {
       addressOfOverflowBlock = inputStream.readLong();
       previousFreeBlockAddress = inputStream.readLong();
       nextFreeBlockAddress = inputStream.readLong();
+      nextOverflowBlockAddress = inputStream.readLong();
+      previousOverflowBlockAddress = inputStream.readLong();
 
       int byteSizeOfOneRecord = tDummyInstance.getByteSize();
       int numberOfRecordsInByteArray = byteArray.length / byteSizeOfOneRecord;
@@ -193,8 +227,9 @@ public class Block<T extends Record> implements IConvertableToBytes {
             SpatialDataFactory.fromByteArray(
                 Arrays.copyOfRange(
                     byteArray,
-                    (ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 3) + i,
-                    ((ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 3) + i) + byteSizeOfOneRecord));
+                    (ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 5) + i,
+                    ((ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 5) + i)
+                        + byteSizeOfOneRecord));
         records[counter] = record;
         counter++;
       }
@@ -209,13 +244,19 @@ public class Block<T extends Record> implements IConvertableToBytes {
     StringBuilder sb = new StringBuilder();
     sb.append("Block - blocking factor: ")
         .append(blockingFactor)
-        .append(" valid records: ")
+        .append("\n Address of overflowBlock: ")
+        .append(addressOfOverflowBlock)
+        .append("\n Address of next overflowBlock: ")
+        .append(nextOverflowBlockAddress)
+        .append("\n Address of previous overflowBlock: ")
+        .append(previousOverflowBlockAddress)
+        .append("\n valid records: ")
         .append(validRecordsCount)
         .append("\n")
         .append("Records: ");
-//    for (int i = 0; i < validRecordsCount; i++) {
-//      sb.append(records[i].toString()).append("\n");
-//    }
+    //    for (int i = 0; i < validRecordsCount; i++) {
+    //      sb.append(records[i].toString()).append("\n");
+    //    }
     sb.append(";\n");
 
     return sb.toString();

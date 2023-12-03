@@ -17,8 +17,6 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
   private final int overflowFileBlockingFactor;
   private final Class<T> tClass;
   private final T tDummyInstance;
-  private final File mainFile;
-  private final File overflowFile; // TODO inicializovat
   private long firstFreeBlockAddressFromMainFile;
   private long firstFreeBlockAddressFromOverflowFile;
 
@@ -29,11 +27,14 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
       int overflowBlockingFactor,
       Class<T> tClass)
       throws IOException {
-    this.mainFile = new File(mainFilePath);
-    this.overflowFile = new File(overflowFilePath);
+    File mainFile = new File(mainFilePath);
+    File overflowFile = new File(overflowFilePath);
 
-    this.mainFileStream = new RandomAccessFile(this.mainFile, "rw");
-    this.overflowFileStream = new RandomAccessFile(this.overflowFile, "rw");
+    resetFile(mainFile);
+    resetFile(overflowFile);
+
+    this.mainFileStream = new RandomAccessFile(mainFile, "rw");
+    this.overflowFileStream = new RandomAccessFile(overflowFile, "rw");
     this.mainFileBlockingFactor = mainBlockingFactor;
     this.overflowFileBlockingFactor = overflowBlockingFactor;
     this.firstFreeBlockAddressFromOverflowFile = INVALID_ADDRESS;
@@ -41,9 +42,6 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
 
     this.tClass = tClass;
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
-
-    resetFile(mainFile);
-    resetFile(overflowFile);
   }
 
   private void resetFile(File file) {
@@ -109,11 +107,11 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
       mainFileStream.setLength(addressOfData);
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfData.removeDataInMainBlock(nodeOfData.getDataSizeInMainBlock());
+      nodeOfData.removeDataInMainBlock(nodeOfData.getDataSizeInOverflowBlock());
       blockToDelete.clear();
       writeMainBlock(blockToDelete, addressOfData);
 
-      setBlockAsFirstFreeBlock(addressOfData, blockToDelete);
+      setMainBlockAsFirstFreeBlock(addressOfData, blockToDelete);
     }
   }
 
@@ -122,7 +120,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     return address + blockToCheck.getByteSize() == mainFileStream.length();
   }
 
-  public String sequenceToString() throws IOException {
+  public String sequenceToStringMainFile() throws IOException {
     StringBuilder sb = new StringBuilder();
     //        Stack<TrieNode> stack = new Stack<>();
     //
@@ -149,11 +147,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     //          }
     //        }
 
+    sb.append("Main file:\n");
     for (long i = 0, fileLength = mainFileStream.length();
         i < fileLength;
         i +=
             ((long) tDummyInstance.getByteSize() * mainFileBlockingFactor
-                + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3L)))) {
+                + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
       Block<T> block = getMainBlock(i);
 
       sb.append(i).append(" ").append(block);
@@ -162,7 +161,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     return sb.toString();
   }
 
-  private void setBlockAsFirstFreeBlock(long addressOfData, Block<T> blockToDelete) {
+  private void setMainBlockAsFirstFreeBlock(long addressOfData, Block<T> blockToDelete) {
     if (firstFreeBlockAddressFromMainFile == INVALID_ADDRESS) {
       firstFreeBlockAddressFromMainFile = addressOfData;
       return;
@@ -195,18 +194,18 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
         mainFileStream.setLength(
             fileLength
                 + ((long) tDummyInstance.getByteSize() * mainFileBlockingFactor
-                    + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 3L))));
+                    + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L))));
 
         return fileLength;
       } else {
-        return getAddressFromFreeBlocks();
+        return getAddressFromFreeMainBlocks();
       }
     } catch (IOException e) {
       throw new RuntimeException("New block cannot been created! Message: " + e);
     }
   }
 
-  private long getAddressFromFreeBlocks() throws IOException {
+  private long getAddressFromFreeMainBlocks() throws IOException {
     long freeBlockAddress = firstFreeBlockAddressFromMainFile;
     Block<T> freeBlock = getMainBlock(freeBlockAddress);
     long nextFreeBlockAddress = freeBlock.getNextFreeBlockAddress();
@@ -232,24 +231,175 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
   }
 
   // New methods to handle the overflow file (similar to main file methods)
-  public Block<T> getOverflowBlock(long address) throws IOException {
+  public Block<T> getOverflowBlock(long address) {
     // Similar logic to getBlock, but for the overflow file
-    throw new UnsupportedOperationException();
+    try {
+      overflowFileStream.seek(address);
+      Block<T> block = new Block<>(overflowFileBlockingFactor, tClass);
+      byte[] blockBytes = new byte[block.getByteSize()];
+      overflowFileStream.read(blockBytes);
+      block.fromByteArray(blockBytes);
+
+      return block;
+    } catch (IOException e) {
+      throw new RuntimeException(
+          String.format(
+              "Error occured when trying to read overflow block from address %d. Error message: %s",
+              address, e.getLocalizedMessage()));
+    }
   }
 
-  public void writeOverflowBlock(Block<T> block, long address) throws IOException {
-    // Similar logic to writeBlock, but for the overflow file
+  public void writeOverflowBlock(Block<T> block, long address) {
+    try {
+      overflowFileStream.seek(address);
+      overflowFileStream.write(block.toByteArray());
+
+    } catch (IOException e) {
+      throw new RuntimeException(
+          String.format(
+              "Error occured when trying to write overflow block to address %d. Error message: %s",
+              address, e.getLocalizedMessage()));
+    }
   }
 
-  public long allocateNewOverflowBlock() throws IOException {
-    // Logic to allocate a new block in the overflow file
-    // This might include handling firstFreeBlockAddressInOverflowFile
-    // and expanding the file size as needed
-    throw new UnsupportedOperationException();
+  public void deleteOverflowBlock(LeafTrieNode nodeOfData) throws IOException {
+    long addressOfData = nodeOfData.getAddressOfData();
+    Block<T> blockToDelete = getOverflowBlock(addressOfData);
+
+    if (isOverflowBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
+      // block is on the end of a file - set new length of file
+      overflowFileStream.setLength(addressOfData);
+    } else {
+      // block is in the middle - clear it and put it in free blocks
+      nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInOverflowBlock());
+      blockToDelete.clear();
+      writeOverflowBlock(blockToDelete, addressOfData);
+
+      setOverflowBlockAsFirstFreeBlock(addressOfData, blockToDelete);
+    }
+  }
+
+  public Block<T> createOverflowBlock(long address) {
+    try {
+      overflowFileStream.seek(address);
+      Block<T> newBlock = new Block<>(overflowFileBlockingFactor, tClass);
+      overflowFileStream.write(newBlock.toByteArray());
+
+      return newBlock;
+    } catch (IOException e) {
+      throw new RuntimeException(
+          String.format(
+              "Error occured when trying to create new Block in address %d. Message: %s",
+              address, e.getLocalizedMessage()));
+    }
+  }
+
+  private void setOverflowBlockAsFirstFreeBlock(long addressOfData, Block<T> blockToDelete) {
+    if (firstFreeBlockAddressFromOverflowFile == INVALID_ADDRESS) {
+      firstFreeBlockAddressFromOverflowFile = addressOfData;
+      return;
+    }
+
+    Block<T> firstFreeBlock = getOverflowBlock(firstFreeBlockAddressFromOverflowFile);
+    firstFreeBlock.setPreviousFreeBlockAddress(addressOfData);
+    blockToDelete.setNextFreeBlockAddress(firstFreeBlockAddressFromOverflowFile);
+    firstFreeBlockAddressFromOverflowFile = addressOfData;
+
+    writeOverflowBlock(blockToDelete, addressOfData);
+  }
+
+  private boolean isOverflowBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
+      throws IOException {
+    return address + blockToCheck.getByteSize() == overflowFileStream.length();
+  }
+
+  public long getNewOverflowBlockAddress() {
+    try {
+      if (firstFreeBlockAddressFromOverflowFile == INVALID_ADDRESS) {
+        long fileLength = overflowFileStream.length();
+        overflowFileStream.setLength(
+            fileLength
+                + ((long) tDummyInstance.getByteSize() * overflowFileBlockingFactor
+                    + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L))));
+
+        return fileLength;
+      } else {
+        return getAddressFromFreeOverflowBlocks();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("New overflow block cannot been created! Message: " + e);
+    }
+  }
+
+  private long getAddressFromFreeOverflowBlocks() throws IOException {
+    long freeBlockAddress = firstFreeBlockAddressFromOverflowFile;
+    Block<T> freeBlock = getOverflowBlock(freeBlockAddress);
+    long nextFreeBlockAddress = freeBlock.getNextFreeBlockAddress();
+
+    if (nextFreeBlockAddress == INVALID_ADDRESS) {
+      freeBlock.setNextFreeBlockAddress(INVALID_ADDRESS);
+      writeOverflowBlock(freeBlock, freeBlockAddress);
+      firstFreeBlockAddressFromOverflowFile = INVALID_ADDRESS;
+
+      return freeBlockAddress;
+    }
+
+    Block<T> secondFreeBlock = getOverflowBlock(nextFreeBlockAddress);
+
+    freeBlock.setNextFreeBlockAddress(INVALID_ADDRESS);
+    secondFreeBlock.setPreviousFreeBlockAddress(INVALID_ADDRESS);
+
+    writeOverflowBlock(freeBlock, freeBlockAddress);
+    writeOverflowBlock(secondFreeBlock, nextFreeBlockAddress);
+
+    firstFreeBlockAddressFromOverflowFile = nextFreeBlockAddress;
+    return freeBlockAddress;
+  }
+
+  public String sequenceToStringOverflowFile() throws IOException {
+    StringBuilder sb = new StringBuilder();
+    //        Stack<TrieNode> stack = new Stack<>();
+    //
+    //        stack.push(trie.root);
+    //
+    //        while (!stack.isEmpty()) {
+    //          TrieNode currentNode = stack.pop();
+    //
+    //          if (currentNode instanceof LeafTrieNode) {
+    //            sb.append(getBlock(((LeafTrieNode) currentNode).getAddressOfData()));
+    //          }
+    //
+    //          if (currentNode instanceof InnerTrieNode) {
+    //            TrieNode leftSon = ((InnerTrieNode) currentNode).getLeftSon();
+    //            TrieNode rightSon = ((InnerTrieNode) currentNode).getRightSon();
+    //
+    //            if (leftSon != null) {
+    //              stack.push(leftSon);
+    //            }
+    //
+    //            if (rightSon != null) {
+    //              stack.push(rightSon);
+    //            }
+    //          }
+    //        }
+    sb.append("Overflow file:\n");
+
+    for (long i = 0, fileLength = overflowFileStream.length();
+        i < fileLength;
+        i +=
+            ((long) tDummyInstance.getByteSize() * overflowFileBlockingFactor
+                + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
+      Block<T> block = getOverflowBlock(i);
+
+      sb.append(i).append(" ").append(block);
+    }
+
+    return sb.toString();
   }
 
   @Override
   public void close() throws IOException {
+    System.out.println("MANAGER: CLOSING FILES");
     mainFileStream.close();
     overflowFileStream.close();
   }

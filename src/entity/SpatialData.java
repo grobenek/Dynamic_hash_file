@@ -195,8 +195,8 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   @Override
   public BitSet hash() {
-    BitSet bitSet = new BitSet(10);
-    char[] hash = Integer.toBinaryString(identificationNumber % 1024).toCharArray();
+    BitSet bitSet = new BitSet(3);
+    char[] hash = Integer.toBinaryString(identificationNumber % 8).toCharArray();
     for (int i = 0; i < hash.length; i++) {
       if (hash[i] == '1') {
         bitSet.set(i);

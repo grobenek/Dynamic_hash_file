@@ -46,7 +46,11 @@ public class Main {
     Property property5 = new Property(6136, 464, "testicek4", rectangle, List.of(parcel));
     Property property6 = new Property(8653456, 465, "testicek5", rectangle, List.of(parcel));
     Property property7 = new Property(34, 466, "testicek6", rectangle, List.of(parcel));
-    Property property8 = new Property(894171343, 467, "testicek7", rectangle, List.of(parcel));
+    Property property8 = new Property(897125343, 467, "testicek7", rectangle, List.of(parcel));
+    Property property9 = new Property(676534136, 468, "testicek8", rectangle, List.of(parcel));
+    Property property10 = new Property(865123356, 469, "testicek9", rectangle, List.of(parcel));
+    Property property11 = new Property(734, 470, "testicek10", rectangle, List.of(parcel));
+    Property property12 = new Property(945671343, 471, "testicek11", rectangle, List.of(parcel));
 
     try (DynamicHashFile<Property> dynamicHashFile =
         new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, 10, Property.class)) {
@@ -58,16 +62,26 @@ public class Main {
       dynamicHashFile.insert(property6);
       dynamicHashFile.insert(property7);
       dynamicHashFile.insert(property8);
+      dynamicHashFile.insert(property9);
+      dynamicHashFile.insert(property10);
+      dynamicHashFile.insert(property11);
+      dynamicHashFile.insert(property12);
 
       //      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
 
-      System.out.println("BEFORE DELETE: " + dynamicHashFile.sequenceToString());
+      System.out.println(
+          "BEFORE DELETE MAIN BLOCK\n: " + dynamicHashFile.sequenceToStringMainFile());
+      System.out.println(
+          "BEFORE DELETE OVERFLOW BLOCK\n: " + dynamicHashFile.sequenceToStringOverflowFile());
 
       dynamicHashFile.delete(property2);
+      //
+      //      System.out.println("\nAFTER DELETE MAIN BLOCK\n: " +
+      // dynamicHashFile.sequenceToStringMainFile());
+      //      System.out.println("AFTER DELETE OVERFLOW BLOCK\n: " +
+      // dynamicHashFile.sequenceToStringOverflowFile());
 
-      System.out.println("AFTER DELETE: " + dynamicHashFile.sequenceToString());
-
-      //      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
+      System.out.println("FOUNDED: " + dynamicHashFile.find(property2));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

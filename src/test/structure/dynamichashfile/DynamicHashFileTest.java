@@ -12,7 +12,7 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class DynamicHashFileTest {
-  private static final int NUMBER_OF_REPETETIONS = 100;
+  private static final int NUMBER_OF_REPETETIONS = 1;
 
   @Test
   void testInsertAndFind() {
@@ -27,20 +27,23 @@ class DynamicHashFileTest {
 
       List<Property> propertyList = new ArrayList<>();
 
-      int NUMBER_OF_PROPERTIES = 20;
+      int NUMBER_OF_PROPERTIES = 10000;
       for (int i = 0; i < NUMBER_OF_PROPERTIES; i++) {
         propertyList.add(new Property(i + random.nextInt(100), i, String.valueOf(i), shape));
       }
 
       try (DynamicHashFile<Property> dynamicHashFile =
-          new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, 10, Property.class)) {
-        for (int i = 0; i < NUMBER_OF_PROPERTIES; i++) {
-          dynamicHashFile.insert(propertyList.get(i));
+          new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, 3, Property.class)) {
+        for (int j = 0; j < NUMBER_OF_PROPERTIES; j++) {
+          dynamicHashFile.insert(propertyList.get(j));
         }
 
-        for (int i = NUMBER_OF_PROPERTIES - 1; i > 0; i--) {
+        for (int i = 0; i < NUMBER_OF_PROPERTIES; i++) {
           assertEquals(propertyList.get(i), dynamicHashFile.find(propertyList.get(i)));
         }
+
+        System.out.println(dynamicHashFile.sequenceToStringMainFile());
+        System.out.println(dynamicHashFile.sequenceToStringOverflowFile());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
