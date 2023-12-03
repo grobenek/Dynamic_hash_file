@@ -6,8 +6,8 @@ import entity.shape.Rectangle;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import structure.dynamichashfile.LimitedString;
-import structure.dynamichashfile.Record;
+import structure.entity.LimitedString;
+import structure.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public class Property extends SpatialData<Parcel> implements IShapeData {
@@ -170,7 +170,7 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
       LimitedString description = new LimitedString();
       description.fromByteArray(
           inputStream.readNBytes(
-              getMaxDescriptionSize() + LimitedString.getStaticElementsByteSize()));
+              getMaxDescriptionSize() + LimitedString.getStaticAttributesByteSize()));
       setDescription(description);
 
       Rectangle shape = new Rectangle();

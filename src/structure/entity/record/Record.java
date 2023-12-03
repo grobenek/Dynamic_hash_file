@@ -1,4 +1,6 @@
-package structure.dynamichashfile;
+package structure.entity.record;
+
+import structure.entity.IConvertableToBytes;
 
 import java.util.BitSet;
 

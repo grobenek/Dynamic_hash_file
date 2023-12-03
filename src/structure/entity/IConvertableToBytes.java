@@ -1,4 +1,4 @@
-package structure.dynamichashfile;
+package structure.entity;
 
 public interface IConvertableToBytes {
   byte[] toByteArray();

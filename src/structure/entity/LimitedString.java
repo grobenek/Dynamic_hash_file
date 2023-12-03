@@ -1,11 +1,12 @@
-package structure.dynamichashfile;
+package structure.entity;
 
 import java.io.*;
 import structure.dynamichashfile.constant.ElementByteSize;
 
 public class LimitedString implements IConvertableToBytes {
-  private static final int STATIC_ELEMENTS_BYTE_SIZE =
+  private static final int STATIC_ATTRIBUTES_BYTE_SIZE =
       2 * ElementByteSize.intByteSize(); // two ints
+  public static final String FILLER = "x";
   private int maxLength;
   private String string;
 
@@ -19,15 +20,15 @@ public class LimitedString implements IConvertableToBytes {
     this.string = "";
   }
 
-  public static int getStaticElementsByteSize() {
-    return STATIC_ELEMENTS_BYTE_SIZE;
+  public static int getStaticAttributesByteSize() {
+    return STATIC_ATTRIBUTES_BYTE_SIZE;
   }
 
   public int getMaxLength() {
     return maxLength;
   }
 
-  public String getString() {
+  public String getTruncatedString() {
     return string.length() <= maxLength ? string : string.substring(0, maxLength);
   }
 
@@ -38,7 +39,7 @@ public class LimitedString implements IConvertableToBytes {
 
       outputStream.writeInt(maxLength);
       outputStream.writeInt(string.length());
-      outputStream.writeBytes(getMaxStringLength());
+      outputStream.writeBytes(getAdjustedString());
 
       return byteArrayOutputStream.toByteArray();
 
@@ -47,11 +48,11 @@ public class LimitedString implements IConvertableToBytes {
     }
   }
 
-  private String getMaxStringLength() {
+  private String getAdjustedString() {
     int lengthDifference = maxLength - string.length();
 
     if (lengthDifference > 0) {
-      return string.concat("x".repeat(lengthDifference));
+      return string.concat(FILLER.repeat(lengthDifference));
     }
 
     return string.substring(0, maxLength);
@@ -59,7 +60,7 @@ public class LimitedString implements IConvertableToBytes {
 
   @Override
   public String toString() {
-    return getString();
+    return getTruncatedString();
   }
 
   @Override
@@ -82,6 +83,6 @@ public class LimitedString implements IConvertableToBytes {
       return false;
     }
 
-    return maxLength == other.maxLength && getString().equals(other.getString());
+    return maxLength == other.maxLength && getTruncatedString().equals(other.getTruncatedString());
   }
 }

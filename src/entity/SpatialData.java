@@ -4,8 +4,8 @@ import entity.shape.Rectangle;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import structure.dynamichashfile.LimitedString;
-import structure.dynamichashfile.Record;
+import structure.entity.LimitedString;
+import structure.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {

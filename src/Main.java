@@ -6,7 +6,7 @@ import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.util.List;
 import structure.dynamichashfile.DynamicHashFile;
-import structure.dynamichashfile.LimitedString;
+import structure.entity.LimitedString;
 
 public class Main {
   public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package structure.dynamichashfile;
+package structure.entity.record;
 
 import java.lang.reflect.InvocationTargetException;
 
