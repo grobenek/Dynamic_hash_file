@@ -227,8 +227,8 @@ public class Block<T extends Record> implements IConvertableToBytes {
             SpatialDataFactory.fromByteArray(
                 Arrays.copyOfRange(
                     byteArray,
-                    (ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 5) + i,
-                    ((ElementByteSize.intByteSize() + ElementByteSize.longByteSize() * 5) + i)
+                    (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5)) + i,
+                    ((ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5)) + i)
                         + byteSizeOfOneRecord));
         records[counter] = record;
         counter++;

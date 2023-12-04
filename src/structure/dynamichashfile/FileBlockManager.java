@@ -105,6 +105,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     if (isMainBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
       mainFileStream.setLength(addressOfData);
+
     } else {
       // block is in the middle - clear it and put it in free blocks
       nodeOfData.removeDataInMainBlock(nodeOfData.getDataSizeInOverflowBlock());

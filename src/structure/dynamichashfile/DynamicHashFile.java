@@ -40,6 +40,10 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
   }
 
   public T find(T recordToFind) {
+    if (recordToFind == null) {
+      throw new IllegalArgumentException("Cannot find null record!");
+    }
+
     BitSet hash = recordToFind.hash();
 
     long address = trie.getLeafOfData(hash).getAddressOfData();
@@ -119,6 +123,10 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
   }
 
   public void delete(T recordToDelete) throws IOException {
+    if (recordToDelete == null) {
+      throw new IllegalArgumentException("Cannot delete null record!");
+    }
+
     BitSet hash = recordToDelete.hash();
 
     LeafTrieNode leafOfData = trie.getLeafOfData(hash);
@@ -284,7 +292,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                 leftSon,
                 rightSon);
 
-        fileBlockManager.deleteMainBlock(leafOfData);
+        fileBlockManager.deleteMainBlock(leaf);
 
         if (blockIsFull) {
           if (leftSonBlock.getValidRecordsCount() == 0) {
