@@ -2,13 +2,13 @@ package entity;
 
 import entity.shape.Rectangle;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
-import java.util.Objects;
-import structure.dynamichashfile.IConvertableToBytes;
-import structure.dynamichashfile.LimitedString;
+import structure.entity.LimitedString;
+import structure.entity.record.Record;
 import structure.quadtree.IShapeData;
 
-public abstract class SpatialData<T extends SpatialData<?>> implements IShapeData, IConvertableToBytes {
+public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {
   private int maximumRelatedDataListSize;
   private int maximumDescriptionSize;
   private int identificationNumber;
@@ -74,6 +74,7 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
       String description,
       Rectangle shape,
       int maximumRelatedDataListSize) {
+
     this.identificationNumber = identificationNumber;
     this.description = new LimitedString(maximumDescriptionSize, description);
     this.shape = shape;
@@ -124,9 +125,7 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
   }
 
-  /**
-   * Default constructor used to create dummy instance for loading from byteArray
-   */
+  /** Default constructor used to create dummy instance for loading from byteArray */
   public SpatialData() {}
 
   public int getMaximumRelatedDataListSize() {
@@ -194,6 +193,18 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
     return maximumRelatedDataListSize;
   }
 
+  @Override
+  public BitSet hash() {
+    BitSet bitSet = new BitSet(3);
+    char[] hash = Integer.toBinaryString(identificationNumber % 8).toCharArray();
+    for (int i = 0; i < hash.length; i++) {
+      if (hash[i] == '1') {
+        bitSet.set(i);
+      }
+    }
+    return bitSet;
+  }
+
   public String toString(String className) {
     StringBuilder sb = new StringBuilder();
     relatedDataList.forEach(
@@ -217,9 +228,9 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
         + ", shape="
         + shape
         + '}'
-        + ", relatedDataList=\n"
+        + ", relatedDataList=[\n"
         + sb
-        + "\n";
+        + "]\n";
   }
 
   @Override
@@ -231,21 +242,7 @@ public abstract class SpatialData<T extends SpatialData<?>> implements IShapeDat
 
     return castedObj.getDescription().equals(description)
         && castedObj.identificationNumber == identificationNumber
-        && ((castedObj.relatedDataList == null && relatedDataList == null)
-            || (castedObj.relatedDataList != null
-                && castedObj.relatedDataList.equals(relatedDataList)))
         && ((castedObj.shape == null && shape == null)
             || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(identificationNumber, description, relatedDataList, shape);
-  }
-
-  @Override
-  public abstract byte[] toByteArray();
-
-  @Override
-  public abstract void fromByteArray(byte[] byteArray);
 }

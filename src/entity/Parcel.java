@@ -1,15 +1,28 @@
 package entity;
 
+import entity.shape.Direction;
+import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import structure.dynamichashfile.LimitedString;
+import structure.entity.LimitedString;
+import structure.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public class Parcel extends SpatialData<Property> implements IShapeData {
+  public static final Parcel DUMMY_INSTANCE;
   private static final int MAX_RELATED_PROPERTY_LIST_SIZE = 5;
   private static final int MAX_DESCRIPTION_SIZE = 11;
+  private static final int BYTE_SIZE = 91;
+
+  static {
+    Rectangle rectangle =
+        new Rectangle(
+            new GpsCoordinates(Direction.S, Integer.MIN_VALUE, Direction.W, Integer.MIN_VALUE),
+            new GpsCoordinates(Direction.N, Integer.MIN_VALUE, Direction.E, Integer.MIN_VALUE));
+    DUMMY_INSTANCE = new Parcel(Integer.MIN_VALUE, "DUMMY", rectangle);
+  }
 
   public Parcel(
       int identificationNumber,
@@ -71,6 +84,15 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
     return MAX_DESCRIPTION_SIZE;
   }
 
+  public static Record getDummyInstance() {
+    return DUMMY_INSTANCE;
+  }
+
+  @Override
+  public int getByteSize() {
+    return BYTE_SIZE;
+  }
+
   @Override
   public byte[] toByteArray() {
     try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -82,8 +104,12 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
       outputStream.write(getShapeOfData().toByteArray());
 
       outputStream.writeInt(getRelatedDataList().size());
-      for (SpatialData spatialData : getRelatedDataList()) {
+      for (SpatialData<?> spatialData : getRelatedDataList()) {
         outputStream.writeInt(spatialData.getIdentificationNumber());
+      }
+
+      for (int i = 0; i < MAX_RELATED_PROPERTY_LIST_SIZE - getRelatedDataList().size(); i++) {
+        outputStream.writeInt(Integer.MIN_VALUE);
       }
 
       return byteArrayOutputStream.toByteArray();
@@ -107,7 +133,7 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
 
       description.fromByteArray(
           inputStream.readNBytes(
-              getMaxDescriptionSize() + LimitedString.getStaticElementsByteSize()));
+              getMaxDescriptionSize() + LimitedString.getStaticAttributesByteSize()));
       setDescription(description);
 
       Rectangle shape = new Rectangle();
@@ -121,6 +147,11 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
       for (int i = 0; i < numberOfRelatedData; i++) {
         int identificationNumber = inputStream.readInt();
         relatedDataList.add(new Property(identificationNumber, -1, ""));
+      }
+
+      // read relatedList zombie data
+      for (int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
+        inputStream.readInt();
       }
 
       setRelatedDataList(relatedDataList);
