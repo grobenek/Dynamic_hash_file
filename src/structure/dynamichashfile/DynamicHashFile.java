@@ -87,7 +87,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     try {
       find(recordToInsert);
       isDuplicate = true;
-    } catch (Exception e) {
+    } catch (IllegalStateException e) {
       isDuplicate = false;
     }
 
@@ -143,6 +143,11 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
 
     if (foundRecord == null) {
       long overflowBlockAddress = block.getAddressOfOverflowBlock();
+
+      if (overflowBlockAddress == INVALID_ADDRESS) {
+        throw new IllegalStateException(
+            String.format("Cannot delete record %s, it was not found!", recordToDelete));
+      }
 
       while (overflowBlockAddress != INVALID_ADDRESS) {
         block = fileBlockManager.getOverflowBlock(overflowBlockAddress);
@@ -254,27 +259,28 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       return createdNode;
     }
 
-    public void expandLeafByHash(Record[] dataToFill, LeafTrieNode leafOfData) throws IOException {
-      LeafTrieNode leaf = leafOfData;
-      InnerTrieNode parentOfOriginalLeaf = (InnerTrieNode) leaf.getParent();
+    public void expandLeafByHash(Record[] dataToFill, LeafTrieNode leafToExpand)
+        throws IOException {
+      LeafTrieNode leafBeingExpanded = leafToExpand;
+      InnerTrieNode parentOfOriginalLeaf = (InnerTrieNode) leafBeingExpanded.getParent();
 
       while (true) {
 
-        if (leaf.getDepth() == maxDepth) {
-          insertDataInOveflowFile(dataToFill[dataToFill.length - 1], leaf);
+        if (leafBeingExpanded.getDepth() == maxDepth) {
+          insertDataInOveflowFile(dataToFill[dataToFill.length - 1], leafBeingExpanded);
           break;
         }
 
         InnerTrieNode newTransformedInnerNode = new InnerTrieNode(parentOfOriginalLeaf, maxDepth);
 
-        LeafTrieNode leftSon = new LeafTrieNode(leaf, maxDepth);
-        LeafTrieNode rightSon = new LeafTrieNode(leaf, maxDepth);
+        LeafTrieNode leftSon = new LeafTrieNode(leafBeingExpanded, maxDepth);
+        LeafTrieNode rightSon = new LeafTrieNode(leafBeingExpanded, maxDepth);
 
         newTransformedInnerNode.setLeftSon(leftSon).setRightSon(rightSon);
 
-        if (parentOfOriginalLeaf.getLeftSon() == leaf) {
+        if (parentOfOriginalLeaf.getLeftSon() == leafBeingExpanded) {
           parentOfOriginalLeaf.setLeftSon(newTransformedInnerNode);
-        } else if (parentOfOriginalLeaf.getRightSon() == leaf) {
+        } else if (parentOfOriginalLeaf.getRightSon() == leafBeingExpanded) {
           parentOfOriginalLeaf.setRightSon(newTransformedInnerNode);
         }
 
@@ -292,7 +298,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                 leftSon,
                 rightSon);
 
-        fileBlockManager.deleteMainBlock(leaf);
+        fileBlockManager.deleteMainBlock(leafBeingExpanded);
 
         if (blockIsFull) {
           if (leftSonBlock.getValidRecordsCount() == 0) {
@@ -310,7 +316,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           }
 
           // continue expansion on full block
-          leaf = (leftSonBlock.getValidRecordsCount() > 0) ? leftSon : rightSon;
+          leafBeingExpanded = (leftSonBlock.getValidRecordsCount() > 0) ? leftSon : rightSon;
           parentOfOriginalLeaf = newTransformedInnerNode;
 
           continue;

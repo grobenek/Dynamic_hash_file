@@ -1,18 +1,14 @@
 package entity;
 
-import structure.dynamichashfile.constant.ElementByteSize;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import structure.dynamichashfile.constant.ElementByteSize;
+import structure.entity.record.Record;
 
-public class SpatialDataFactory {
-  public static byte[] toByteArray(SpatialData<?> spatialData) {
-    return spatialData.toByteArray();
-  }
-
-  public static SpatialData<?> fromByteArray(byte[] byteArray) {
+public class RecordDataFactory {
+  public static Record fromByteArray(byte[] byteArray) {
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
 

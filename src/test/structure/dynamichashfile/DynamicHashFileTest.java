@@ -13,8 +13,8 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class DynamicHashFileTest {
-  private static final int NUMBER_OF_REPETETIONS = 100;
-  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 100;
+  private static final int NUMBER_OF_REPETETIONS = 1000;
+  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 500;
 
   @Test
   void testInsertAndFind() {

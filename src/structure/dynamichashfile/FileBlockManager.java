@@ -98,22 +98,43 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     }
   }
 
-  public void deleteMainBlock(LeafTrieNode nodeOfData) throws IOException {
-    long addressOfData = nodeOfData.getAddressOfData();
+  public void deleteMainBlock(LeafTrieNode nodeOfBlockToDelete) throws IOException {
+    long addressOfData = nodeOfBlockToDelete.getAddressOfData();
     Block<T> blockToDelete = getMainBlock(addressOfData);
 
     if (isMainBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
       mainFileStream.setLength(addressOfData);
-
+      //      mainFileStream.setLength( //TODO toto spravit, ale asi niekde v trie, lebo ked to
+      // vymazem a trie o tom nevie, tak pristupujem k datam mimo file - ale mozno to staci takto
+      //              getAddressLastEmptyBlockFromEndOfFile(addressOfData, blockToDelete, true));
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfData.removeDataInMainBlock(nodeOfData.getDataSizeInOverflowBlock());
+      nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInOverflowBlock());
       blockToDelete.clear();
       writeMainBlock(blockToDelete, addressOfData);
 
       setMainBlockAsFirstFreeBlock(addressOfData, blockToDelete);
     }
+  }
+
+  private long getAddressLastEmptyBlockFromEndOfFile( // TODO toto hore
+      long addressOfPCurrentBlock, Block<T> pCurrentBlock, boolean isInMainFile) {
+    long addressOfCurrentBlock = addressOfPCurrentBlock;
+    Block<T> currentBlock = pCurrentBlock;
+
+    while (currentBlock.getAddressOfOverflowBlock() == INVALID_ADDRESS && currentBlock.isEmpty()) {
+      addressOfCurrentBlock =
+          addressOfCurrentBlock - (currentBlock.getByteSize()) < 0
+              ? 0
+              : addressOfCurrentBlock - ((currentBlock.getByteSize()));
+      currentBlock =
+          isInMainFile
+              ? getMainBlock(addressOfCurrentBlock)
+              : getOverflowBlock(addressOfCurrentBlock);
+    }
+
+    return addressOfCurrentBlock;
   }
 
   private boolean isMainBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
@@ -212,10 +233,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     long nextFreeBlockAddress = freeBlock.getNextFreeBlockAddress();
 
     if (nextFreeBlockAddress == INVALID_ADDRESS) {
-      freeBlock.setNextFreeBlockAddress(INVALID_ADDRESS);
-      writeMainBlock(freeBlock, freeBlockAddress);
       firstFreeBlockAddressFromMainFile = INVALID_ADDRESS;
-
       return freeBlockAddress;
     }
 
@@ -269,7 +287,8 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
 
     if (isOverflowBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
-      overflowFileStream.setLength(addressOfData);
+      overflowFileStream.setLength(
+          addressOfData); // TODO treba pozriet aj predchodcu a zmazat ak tak
     } else {
       // block is in the middle - clear it and put it in free blocks
       nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInOverflowBlock());

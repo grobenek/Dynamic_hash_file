@@ -1,6 +1,6 @@
 import entity.Parcel;
 import entity.Property;
-import entity.SpatialDataFactory;
+import entity.RecordDataFactory;
 import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
@@ -38,7 +38,7 @@ public class Main {
 
     byte[] propertyByteArray = property.toByteArray();
 
-    Property restoredProperty = (Property) SpatialDataFactory.fromByteArray(propertyByteArray);
+    Property restoredProperty = (Property) RecordDataFactory.fromByteArray(propertyByteArray);
 
     Property property2 = new Property(51345256, 461, "testicek", rectangle, List.of(parcel));
     Property property3 = new Property(98765, 462, "testicek2", rectangle, List.of(parcel));

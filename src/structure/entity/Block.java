@@ -1,6 +1,6 @@
 package structure.entity;
 
-import entity.SpatialDataFactory;
+import entity.RecordDataFactory;
 import java.io.*;
 import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
@@ -224,7 +224,7 @@ public class Block<T extends Record> implements IConvertableToBytes {
           i < numberOfRecordsInByteArray * byteSizeOfOneRecord;
           i += byteSizeOfOneRecord) {
         Record record =
-            SpatialDataFactory.fromByteArray(
+            RecordDataFactory.fromByteArray(
                 Arrays.copyOfRange(
                     byteArray,
                     (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5)) + i,
@@ -237,6 +237,10 @@ public class Block<T extends Record> implements IConvertableToBytes {
     } catch (IOException e) {
       throw new RuntimeException("Error during conversion from byte array.", e);
     }
+  }
+
+  public boolean isEmpty() {
+    return validRecordsCount == 0;
   }
 
   @Override
