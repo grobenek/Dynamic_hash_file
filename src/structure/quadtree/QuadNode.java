@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class QuadNode<T extends SpatialData> {
+public class QuadNode<T extends IShapeData> {
   public static final int MAX_CHILDREN = 4;
   private final QuadNode<T>[] children;
   private QuadNode<T> parent;

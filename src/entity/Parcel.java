@@ -76,6 +76,10 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
 
   public Parcel() {}
 
+  public Parcel(int identificationNumber) {
+    super(identificationNumber);
+  }
+
   public static int getMaxPropertyListSize() {
     return MAX_RELATED_PROPERTY_LIST_SIZE;
   }
@@ -150,14 +154,14 @@ public class Parcel extends SpatialData<Property> implements IShapeData {
       }
 
       // read relatedList zombie data
-      for (int i = 0; i < Property.getMaxParcelListSize() - numberOfRelatedData; i++) {
+      for (int i = 0; i < Parcel.getMaxPropertyListSize() - numberOfRelatedData; i++) {
         inputStream.readInt();
       }
 
       setRelatedDataList(relatedDataList);
 
     } catch (IOException e) {
-      throw new RuntimeException("Error during conversion from byte array.", e);
+      throw new RuntimeException("Error during conversion from byte array. Error: " + e.getLocalizedMessage());
     }
   }
 

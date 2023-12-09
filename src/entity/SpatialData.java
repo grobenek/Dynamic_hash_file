@@ -128,6 +128,10 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
   /** Default constructor used to create dummy instance for loading from byteArray */
   public SpatialData() {}
 
+  public SpatialData(int identificationNumber) {
+    this.identificationNumber = identificationNumber;
+  }
+
   public int getMaximumRelatedDataListSize() {
     return maximumRelatedDataListSize;
   }
@@ -206,15 +210,29 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
   }
 
   public String toString(String className) {
+    if (relatedDataList == null) {
+      return className
+        + "{"
+        + "identificationNumber="
+        + identificationNumber
+        + ", description='"
+        + description
+        + '\''
+        + ", shape="
+        + shape
+        + '}'
+        + ", relatedDataList=[]";
+    }
+
     StringBuilder sb = new StringBuilder();
     relatedDataList.forEach(
         data -> {
           sb.append("identificationNumber=")
               .append(data.getIdentificationNumber())
               .append(" ")
-              .append("Description: ")
+              .append("Description: '")
               .append(data.getDescription())
-              .append(" ")
+              .append("' ")
               .append(data.getShapeOfData());
         });
 
@@ -240,9 +258,12 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     }
     SpatialData<?> castedObj = (SpatialData<?>) obj;
 
-    return castedObj.getDescription().equals(description)
-        && castedObj.identificationNumber == identificationNumber
-        && ((castedObj.shape == null && shape == null)
-            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    //    return castedObj.getDescription().equals(description)
+    //        && castedObj.identificationNumber == identificationNumber
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    return identificationNumber == castedObj.getIdentificationNumber();
+//        && ((castedObj.shape == null && shape == null)
+//            || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }
 }

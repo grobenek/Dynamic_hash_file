@@ -6,7 +6,7 @@ import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.util.*;
 
-public class QuadTree<T extends SpatialData> {
+public class QuadTree<T extends IShapeData> {
   private int height;
   private Rectangle shape;
   private QuadNode<T> root;

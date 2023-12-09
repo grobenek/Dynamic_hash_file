@@ -98,6 +98,10 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
 
   public Property() {}
 
+  public Property(int propertyIdentificationNumber) {
+    super(propertyIdentificationNumber);
+  }
+
   public static int getMaxParcelListSize() {
     return MAX_RELATED_PARCEL_LIST_SIZE;
   }

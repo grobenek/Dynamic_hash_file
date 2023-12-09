@@ -81,7 +81,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     throw new IllegalStateException(String.format("Record %s was not found!", recordToFind));
   }
 
-  public void insert(T recordToInsert) throws IOException {
+  public void insert(T recordToInsert) {
     // checking if hash file already contains the item
     boolean isDuplicate;
     try {
@@ -119,10 +119,17 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     // no free space - expand Trie
     Record[] dataToFill = getDataToFill(recordToInsert, block);
 
-    trie.expandLeafByHash(dataToFill, leafOfData);
+    try {
+      trie.expandLeafByHash(dataToFill, leafOfData);
+    } catch (IOException e) {
+      throw new RuntimeException(
+          String.format(
+              "Error occured when expanding leaf %s. Error message: %s",
+              leafOfData, e.getLocalizedMessage()));
+    }
   }
 
-  public void delete(T recordToDelete) throws IOException {
+  public void delete(T recordToDelete) {
     if (recordToDelete == null) {
       throw new IllegalArgumentException("Cannot delete null record!");
     }
@@ -172,7 +179,14 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       block.removeRecord(foundRecord);
       leafOfData.removeDataInMainBlock();
       fileBlockManager.writeMainBlock(block, address);
-      trie.shrinkIfNeeded((InnerTrieNode) leafOfData.getParent());
+      try {
+        trie.shrinkIfNeeded((InnerTrieNode) leafOfData.getParent());
+      } catch (IOException e) {
+        throw new RuntimeException(
+            String.format(
+                "Cannot try to shrink node %s. Error message: %s",
+                leafOfData.getParent(), e.getLocalizedMessage()));
+      }
     }
   }
 
