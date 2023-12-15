@@ -2,13 +2,18 @@ package mvc.view;
 
 import entity.Parcel;
 import entity.Property;
-import entity.shape.Rectangle;
-import mvc.controller.IController;
-
+import entity.SpatialDataType;
+import java.awt.*;
 import javax.swing.*;
+import mvc.controller.IController;
+import mvc.view.entity.OperationType;
+import mvc.view.entity.StructuresParameters;
+import mvc.view.observable.IObservable;
+import mvc.view.observable.IStructuresParametersObservable;
+import structure.dynamichashfile.DynamicHashFile;
 
 public class MainWindow extends JFrame implements IMainWindow {
-    private final IController controller;
+  private final IController controller;
   private JButton insertNewPropertyButton;
   private JButton seachPropertiesButton;
   private JButton searchParcelsButton;
@@ -26,9 +31,9 @@ public class MainWindow extends JFrame implements IMainWindow {
   private JButton saveButton;
   private JButton loadButton;
 
-    public MainWindow(IController controller) {
-        this.controller = controller;
-        setContentPane(mainPanel);
+  public MainWindow(IController controller) {
+    this.controller = controller;
+    setContentPane(mainPanel);
     setTitle("Szathmáry_AUS2 - Semestrálna práca č. 1");
     setDefaultCloseOperation(EXIT_ON_CLOSE);
     setSize(1200, 900);
@@ -37,127 +42,201 @@ public class MainWindow extends JFrame implements IMainWindow {
 
     insertNewPropertyButton.addActionListener(
         e -> {
-//          NewDataDialog newPropertyDialog =
-//              new NewDataDialog(this, this.controller, DataType.PROPERTY);
+          NewDataDialog newPropertyDialog =
+              new NewDataDialog(this, this.controller, SpatialDataType.PROPERTY);
         });
 
     insertNewParcelButton.addActionListener(
         e -> {
-//          NewDataDialog newParcelDialog = new NewDataDialog(this, this.controller, DataType.PARCEL);
+          NewDataDialog newParcelDialog =
+              new NewDataDialog(this, this.controller, SpatialDataType.PARCEL);
         });
 
     seachPropertiesButton.addActionListener(
         e -> {
-//          GetShapeDialog getShapeDialog =
-//              new GetShapeDialog(this, SearchCriteria.PROPERTIES, OperationType.SEARCH);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(
+                  this, SpatialDataType.PROPERTY, OperationType.SEARCH);
         });
 
     searchParcelsButton.addActionListener(
         e -> {
-//          GetShapeDialog getShapeDialog =
-//              new GetShapeDialog(this, SearchCriteria.PARCELS, OperationType.SEARCH);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(this, SpatialDataType.PARCEL, OperationType.SEARCH);
         });
 
     resetFilesButton.addActionListener(
         e -> {
-            //TODO inicializacia quat trees a dynamic hash files
-          resultText.setText("");
+          initializeBothDynamicHashFiles();
         });
 
-        editPropertyButton.addActionListener(
+    editPropertyButton.addActionListener(
         e -> {
-//            GetShapeDialog getShapeDialog =
-//                    new GetShapeDialog(this, SearchCriteria.PROPERTIES, OperationType.EDIT);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(this, SpatialDataType.PROPERTY, OperationType.EDIT);
         });
 
     editParcelButton.addActionListener(
         e -> {
-//          GetShapeDialog getShapeDialog =
-//              new GetShapeDialog(this, SearchCriteria.PARCELS, OperationType.EDIT);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(this, SpatialDataType.PARCEL, OperationType.EDIT);
         });
 
     deletePropertyButton.addActionListener(
         e -> {
-//          GetShapeDialog getShapeDialog =
-//              new GetShapeDialog(this, SearchCriteria.PROPERTIES, OperationType.DELETE);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(
+                  this, SpatialDataType.PROPERTY, OperationType.DELETE);
         });
 
     deleteParcelButton.addActionListener(
         e -> {
-//          GetShapeDialog getShapeDialog =
-//              new GetShapeDialog(this, SearchCriteria.PARCELS, OperationType.DELETE);
+          GetIdentificationNumberDialog getIdentificationNumberDialog =
+              new GetIdentificationNumberDialog(this, SpatialDataType.PARCEL, OperationType.DELETE);
         });
 
     generateDataButton.addActionListener(
         e -> {
-//          GenerateDataDialog generateDataDialog = new GenerateDataDialog(this);
+          GenerateDataDialog generateDataDialog = new GenerateDataDialog(this);
         });
 
     saveButton.addActionListener(
         e -> {
-//          saveDataFromFile("parcels.csv", DataType.PARCEL, new CsvBuilder());
-//          saveDataFromFile("properties.csv", DataType.PROPERTY, new CsvBuilder());
+          //          saveDataFromFile("parcels.csv", DataType.PARCEL, new CsvBuilder());
+          //          saveDataFromFile("properties.csv", DataType.PROPERTY, new CsvBuilder());
         });
 
     loadButton.addActionListener(
         e -> {
-//          loadDataFromFile("parcels.csv", new CsvBuilder());
-//          loadDataFromFile("properties.csv", new CsvBuilder());
+          //          loadDataFromFile("parcels.csv", new CsvBuilder());
+          //          loadDataFromFile("properties.csv", new CsvBuilder());
         });
+  }
+
+  @Override
+  public void findProperty(int propertyIdentificationNumber) {
+    System.out.println("Searching");
+    Property foundedProperty = controller.findProperty(propertyIdentificationNumber);
+    if (foundedProperty != null) {
+      resultText.setText(foundedProperty.toString());
+    }
+    System.out.println("Done");
+  }
+
+  @Override
+  public void findParcel(int parcelIdentificationNumber) {
+    System.out.println("Searching");
+    Parcel foundedParcel = controller.findParcel(parcelIdentificationNumber);
+    if (foundedParcel != null) {
+      resultText.setText(foundedParcel.toString());
+    }
+    System.out.println("Done");
+  }
+
+  @Override
+  public void removeProperty(int propertyIdentificationNumber) {
+    controller.removeProperty(propertyIdentificationNumber);
+  }
+
+  @Override
+  public void removeParcel(int parcelIdentificationNumber) {
+    controller.removeParcel(parcelIdentificationNumber);
+  }
+
+  @Override
+  public void editProperty(int identificationNumber) {
+    Property foundedProperty = controller.findProperty(identificationNumber);
+
+    NewDataDialog newDataDialog =
+        new NewDataDialog(this, controller, SpatialDataType.PROPERTY, foundedProperty);
+  }
+
+  @Override
+  public void editParcel(int identificationNumber) {
+    Parcel foundedParcel = controller.findParcel(identificationNumber);
+
+    NewDataDialog newDataDialog =
+        new NewDataDialog(this, controller, SpatialDataType.PARCEL, foundedParcel);
+  }
+
+  @Override
+  public void generateData(int numberOfProperties, int numberOfParcels) {
+    controller.generateData(numberOfProperties, numberOfParcels);
+  }
+
+  @Override
+  public void initializeBothDynamicHashFiles() {
+    resultText.setText("");
+
+    InitializeStructureDialog initializeStructureDialogParcels =
+        new InitializeStructureDialog(this, SpatialDataType.PARCEL);
+
+    initializeStructureDialogParcels.attach(this);
+    initializeStructureDialogParcels.setVisible(true);
+
+    InitializeStructureDialog initializeStructureDialogProperties =
+        new InitializeStructureDialog(this, SpatialDataType.PROPERTY);
+
+    initializeStructureDialogProperties.attach(this);
+    initializeStructureDialogProperties.setVisible(true);
+  }
+
+  @Override
+  public void setParcelDynamicHashFileInfo(DynamicHashFile<Parcel> dynamicHashFile) {
+    parcelHashFileInfo.setText(dynamicHashFile.sequenceToStringMainFile());
+  }
+
+  @Override
+  public void setPropertyDynamicHashFileInfo(DynamicHashFile<Property> dynamicHashFile) {
+    propertyHashFileInfo.setText(dynamicHashFile.sequenceToStringMainFile());
+  }
+
+  @Override
+  public void showPopupMessage(String message) {
+    // setting maximum size - errors are often long
+    JTextArea errorTextArea = new JTextArea(message);
+    errorTextArea.setLineWrap(true);
+    errorTextArea.setWrapStyleWord(true);
+    errorTextArea.setEditable(false);
+
+    JScrollPane scrollPane = new JScrollPane(errorTextArea);
+    scrollPane.setPreferredSize(new Dimension(500, 300));
+
+    JOptionPane.showMessageDialog(this, scrollPane, "Nastala chyba :(", JOptionPane.ERROR_MESSAGE);
+  }
+
+  @Override
+  public JFrame getJFrameObject() {
+    return null;
+  }
+
+  @Override
+  public void update(IObservable observable) {
+    if (!(observable instanceof IStructuresParametersObservable)) {
+      return;
     }
 
-    @Override
-    public Property findProperty(int propertyIdentificationNumber) {
-        return null;
+    StructuresParameters parameters =
+        ((IStructuresParametersObservable) observable).getStructuresParameters();
+
+    if (parameters.getDataType() == SpatialDataType.PARCEL) {
+      controller.initializeParcelDynamicHashFile(
+          parameters.getPathToMainFile(),
+          parameters.getPathToOverflowFile(),
+          parameters.getMainFileBlockingFactor(),
+          parameters.getOverflowFileBlockingFactor());
+      controller.initializeParcelQuadTree(
+          parameters.getQuadTreeHeight(), parameters.getQuadTreeShape());
     }
 
-    @Override
-    public Parcel findParcel(int parcelIdentificationNumber) {
-        return null;
+    if (parameters.getDataType() == SpatialDataType.PROPERTY) {
+      controller.initializePropertyDynamicHashFile(
+          parameters.getPathToMainFile(),
+          parameters.getPathToOverflowFile(),
+          parameters.getMainFileBlockingFactor(),
+          parameters.getOverflowFileBlockingFactor());
+      controller.initializePropertyQuadTree(
+          parameters.getQuadTreeHeight(), parameters.getQuadTreeShape());
     }
-
-    @Override
-    public void insertProperty(int registrationNumber, String description, Rectangle shape) {
-
-    }
-
-    @Override
-    public void insertParcel(String description, Rectangle shape) {
-
-    }
-
-    @Override
-    public void removeProperty(Property property) {
-
-    }
-
-    @Override
-    public void removeParcel(Parcel parcel) {
-
-    }
-
-    @Override
-    public void editProperty(Property property) {
-
-    }
-
-    @Override
-    public void editParcel(Parcel parcel) {
-
-    }
-
-    @Override
-    public void generateData(int numberOfProperties, int numberOfParcels) {
-
-    }
-
-    @Override
-    public void showPopupMessage(String message) {
-
-    }
-
-    @Override
-    public JFrame getJFrameObject() {
-        return null;
-    }
+  }
 }

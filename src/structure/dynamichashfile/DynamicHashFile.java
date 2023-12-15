@@ -5,6 +5,7 @@ import java.util.BitSet;
 import structure.dynamichashfile.trie.*;
 import structure.entity.Block;
 import structure.entity.record.Record;
+import structure.entity.record.RecordFactory;
 
 public class DynamicHashFile<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();
@@ -16,7 +17,6 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       String pathToOverflowFile,
       int blockingFactorOfMainFile,
       int blockingFactorOfOverflowFile,
-      int maxDepth,
       Class<T> tClass)
       throws IOException {
 
@@ -28,7 +28,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
             blockingFactorOfOverflowFile,
             tClass);
 
-    this.trie = new Trie(maxDepth);
+    this.trie = new Trie(RecordFactory.getDummyInstance(tClass).getMaxHashSize());
   }
 
   private static <T extends Record> Record[] getDataToFill(T recordToInsert, Block<T> block) {
@@ -79,6 +79,67 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     }
 
     throw new IllegalStateException(String.format("Record %s was not found!", recordToFind));
+  }
+
+  public void edit(T recordToEdit, T changedRecordToSave) {
+    if (!recordToEdit.equals(changedRecordToSave)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Cannot edit record %s to record %s. Objects are not equal!",
+              recordToEdit, changedRecordToSave));
+    }
+
+    if (recordToEdit == null) {
+      throw new IllegalArgumentException("Cannot find null record!");
+    }
+
+    BitSet hash = recordToEdit.hash();
+
+    long address = trie.getLeafOfData(hash).getAddressOfData();
+
+    if (address == INVALID_ADDRESS) {
+      throw new IllegalStateException(
+          String.format("Address for record %s was not found!", recordToEdit));
+    }
+
+    Block<T> block = fileBlockManager.getMainBlock(address);
+
+    T foundRecord = (T) block.getRecord(recordToEdit);
+
+    if (foundRecord == null) {
+      long overflowBlockAddress = block.getAddressOfOverflowBlock();
+
+      while (overflowBlockAddress != INVALID_ADDRESS) {
+        block = fileBlockManager.getOverflowBlock(overflowBlockAddress);
+        foundRecord = (T) block.getRecord(recordToEdit);
+
+        if (foundRecord != null) {
+          // swap objects
+          block.removeRecord(foundRecord);
+          block.addRecord(changedRecordToSave);
+
+          // save block
+          fileBlockManager.writeOverflowBlock(block, overflowBlockAddress);
+          return;
+        }
+
+        overflowBlockAddress = block.getNextOverflowBlockAddress();
+
+        if (overflowBlockAddress == INVALID_ADDRESS) {
+          throw new IllegalStateException(String.format("Record %s was not found!", recordToEdit));
+        }
+      }
+    } else {
+      // swap objects
+      block.removeRecord(foundRecord);
+      block.addRecord(changedRecordToSave);
+
+      // save block
+      fileBlockManager.writeMainBlock(block, address);
+      return;
+    }
+
+    throw new IllegalStateException(String.format("Record %s was not found!", recordToEdit));
   }
 
   public void insert(T recordToInsert) {
@@ -190,12 +251,20 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     }
   }
 
-  public String sequenceToStringMainFile() throws IOException {
-    return fileBlockManager.sequenceToStringMainFile();
+  public String sequenceToStringMainFile() {
+    try {
+      return fileBlockManager.sequenceToStringMainFile();
+    } catch (IOException e) {
+      return "There was error reading main file: " + e.getLocalizedMessage();
+    }
   }
 
-  public String sequenceToStringOverflowFile() throws IOException {
-    return fileBlockManager.sequenceToStringOverflowFile();
+  public String sequenceToStringOverflowFile() {
+    try {
+      return fileBlockManager.sequenceToStringOverflowFile();
+    } catch (IOException e) {
+      return "There was error reading overflow file: " + e.getLocalizedMessage();
+    }
   }
 
   @Override

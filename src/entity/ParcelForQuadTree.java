@@ -21,5 +21,23 @@ public class ParcelForQuadTree implements IShapeData {
     return shape;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof ParcelForQuadTree)) {
+      return false;
+    }
 
+    return shape.equals(((ParcelForQuadTree) obj).shape)
+        && identificationNumber == ((ParcelForQuadTree) obj).identificationNumber;
+  }
+
+  @Override
+  public String toString() {
+    return "ParcelForQuadTree{"
+        + "identificationNumber="
+        + identificationNumber
+        + ", shape="
+        + shape
+        + '}';
+  }
 }

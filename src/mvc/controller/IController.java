@@ -4,8 +4,9 @@ import entity.Parcel;
 import entity.Property;
 import entity.shape.Rectangle;
 import mvc.view.IMainWindow;
+import mvc.view.observable.IObserver;
 
-public interface IController {
+public interface IController extends IObserver {
   Property findProperty(int propertyIdentificationNumber);
 
   Parcel findParcel(int parcelIdentificationNumber);
@@ -18,6 +19,10 @@ public interface IController {
 
   void removeParcel(int parcelIdentificationNumber);
 
+  void editProperty(Property propertyToEdit, Property editedProperty);
+
+  void editParcel(Parcel parcelToEdit, Parcel editedParcel);
+
   void initializePropertyQuadTree(int height, Rectangle shape);
 
   void initializeParcelQuadTree(int height, Rectangle shape);
@@ -26,15 +31,15 @@ public interface IController {
       String pathToMainFile,
       String pathToOverflowFile,
       int mainFileBlockingFactor,
-      int overflowFileBlockingFactor,
-      int maxHeight);
+      int overflowFileBlockingFactor);
 
   void initializeParcelDynamicHashFile(
       String pathToMainFile,
       String pathToOverflowFile,
       int mainFileBlockingFactor,
-      int overflowFileBlockingFactor,
-      int maxHeight);
+      int overflowFileBlockingFactor);
 
   void setView(IMainWindow view);
+
+  void generateData(int numberOfProperties, int numberOfParcels);
 }

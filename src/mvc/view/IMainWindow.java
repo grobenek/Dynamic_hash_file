@@ -2,28 +2,30 @@ package mvc.view;
 
 import entity.Parcel;
 import entity.Property;
-import entity.shape.Rectangle;
-
 import javax.swing.*;
+import mvc.view.observable.IObserver;
+import structure.dynamichashfile.DynamicHashFile;
 
-public interface IMainWindow {
-  Property findProperty(int propertyIdentificationNumber);
+public interface IMainWindow extends IObserver {
+  void findProperty(int propertyIdentificationNumber);
 
-  Parcel findParcel(int parcelIdentificationNumber);
+  void findParcel(int parcelIdentificationNumber);
 
-  void insertProperty(int registrationNumber, String description, Rectangle shape);
+  void removeProperty(int propertyIdentificationNumber);
 
-  void insertParcel(String description, Rectangle shape);
+  void removeParcel(int parcelIdentificationNumber);
 
-  void removeProperty(Property property);
+  void editProperty(int identificationNumber);
 
-  void removeParcel(Parcel parcel);
-
-  void editProperty(Property property);
-
-  void editParcel(Parcel parcel);
+  void editParcel(int identificationNumber);
 
   void generateData(int numberOfProperties, int numberOfParcels);
+
+  void initializeBothDynamicHashFiles();
+
+  void setParcelDynamicHashFileInfo(DynamicHashFile<Parcel> dynamicHashFile);
+
+  void setPropertyDynamicHashFileInfo(DynamicHashFile<Property> dynamicHashFile);
 
   void showPopupMessage(String message);
 

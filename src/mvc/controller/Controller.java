@@ -5,6 +5,9 @@ import entity.Property;
 import entity.shape.Rectangle;
 import mvc.model.IModel;
 import mvc.view.IMainWindow;
+import mvc.view.observable.IObservable;
+import mvc.view.observable.IStructuresWrapperObservable;
+import structure.dynamichashfile.DynamicHashFile;
 
 public class Controller implements IController {
   private final IModel model;
@@ -12,60 +15,159 @@ public class Controller implements IController {
 
   public Controller(IModel model) {
     this.model = model;
+    model.attach(this);
   }
 
   @Override
   public Property findProperty(int propertyIdentificationNumber) {
-    return model.findProperty(propertyIdentificationNumber);
+    try {
+      return model.findProperty(propertyIdentificationNumber);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+      return null;
+    }
   }
 
   @Override
   public Parcel findParcel(int parcelIdentificationNumber) {
-    return model.findParcel(parcelIdentificationNumber);
+    try {
+      return model.findParcel(parcelIdentificationNumber);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+      return null;
+    }
   }
 
   @Override
   public void insertProperty(int registrationNumber, String description, Rectangle shape) {
-    model.insertProperty(registrationNumber, description, shape);
+    try {
+      model.insertProperty(registrationNumber, description, shape);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
   public void insertParcel(String description, Rectangle shape) {
-    model.insertParcel(description, shape);
+    try {
+      model.insertParcel(description, shape);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
   public void removeProperty(int propertyIdentificationNumber) {
-    model.removeProperty(propertyIdentificationNumber);
+    try {
+      model.removeProperty(propertyIdentificationNumber);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
   public void removeParcel(int parcelIdentificationNumber) {
-    model.removeParcel(parcelIdentificationNumber);
+    try {
+      model.removeParcel(parcelIdentificationNumber);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
+  }
+
+  @Override
+  public void editProperty(Property propertyToEdit, Property editedProperty) {
+    try {
+      model.editProperty(propertyToEdit, editedProperty);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
+  }
+
+  @Override
+  public void editParcel(Parcel parcelToEdit, Parcel editedParcel) {
+    try {
+      model.editParcel(parcelToEdit, editedParcel);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
   public void initializePropertyQuadTree(int height, Rectangle shape) {
-    model.initializePropertyQuadTree(height, shape);
+    try {
+      model.initializePropertyQuadTree(height, shape);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
   public void initializeParcelQuadTree(int height, Rectangle shape) {
-    model.initializeParcelQuadTree(height, shape);
+    try {
+      model.initializeParcelQuadTree(height, shape);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
-  public void initializePropertyDynamicHashFile(String pathToMainFile, String pathToOverflowFile, int mainFileBlockingFactor, int overflowFileBlockingFactor, int maxHeight) {
-    model.initializePropertyDynamicHashFile(pathToMainFile, pathToOverflowFile, mainFileBlockingFactor, overflowFileBlockingFactor, maxHeight);
+  public void initializePropertyDynamicHashFile(
+      String pathToMainFile,
+      String pathToOverflowFile,
+      int mainFileBlockingFactor,
+      int overflowFileBlockingFactor) {
+    try {
+      model.initializePropertyDynamicHashFile(
+          pathToMainFile, pathToOverflowFile, mainFileBlockingFactor, overflowFileBlockingFactor);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
-  public void initializeParcelDynamicHashFile(String pathToMainFile, String pathToOverflowFile, int mainFileBlockingFactor, int overflowFileBlockingFactor, int maxHeight) {
-    model.initializeParcelDynamicHashFile(pathToMainFile, pathToOverflowFile, mainFileBlockingFactor, overflowFileBlockingFactor, maxHeight);
+  public void initializeParcelDynamicHashFile(
+      String pathToMainFile,
+      String pathToOverflowFile,
+      int mainFileBlockingFactor,
+      int overflowFileBlockingFactor) {
+    try {
+      model.initializeParcelDynamicHashFile(
+          pathToMainFile, pathToOverflowFile, mainFileBlockingFactor, overflowFileBlockingFactor);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   public void setView(IMainWindow view) {
     this.view = view;
-//    view.initializeBothQuadTrees();
+    this.view.initializeBothDynamicHashFiles();
+  }
+
+  @Override
+  public void generateData(int numberOfProperties, int numberOfParcels) {
+    model.generateData(numberOfProperties, numberOfParcels);
+  }
+
+  @Override
+  public void update(IObservable observable) {
+    if (!(observable instanceof IStructuresWrapperObservable)) {
+      return;
+    }
+
+    DynamicHashFile<?>[] files = ((IStructuresWrapperObservable) observable).getHashFiles();
+
+    if (files.length == 0) {
+      return;
+    }
+
+    for (int i = 0; i < files.length; i++) {
+      if (i == 0 && files[i] != null) {
+        view.setParcelDynamicHashFileInfo((DynamicHashFile<Parcel>) files[i]);
+      }
+
+      if (i == 1 && files[i] != null) {
+        view.setPropertyDynamicHashFileInfo((DynamicHashFile<Property>) files[i]);
+      }
+    }
   }
 }

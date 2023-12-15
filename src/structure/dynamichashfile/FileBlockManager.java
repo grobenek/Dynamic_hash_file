@@ -9,7 +9,7 @@ import structure.entity.Block;
 import structure.entity.record.Record;
 import structure.entity.record.RecordFactory;
 
-public class FileBlockManager<T extends Record> implements AutoCloseable {
+class FileBlockManager<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();
   private final RandomAccessFile mainFileStream;
   private final RandomAccessFile overflowFileStream;
@@ -177,7 +177,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
                 + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
       Block<T> block = getMainBlock(i);
 
-      sb.append(i).append(" ").append(block);
+      sb.append("---------------------")
+          .append("\n")
+          .append(i)
+          .append(" ")
+          .append(block)
+          .append("\n");
     }
 
     return sb.toString();
@@ -411,7 +416,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
                 + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
       Block<T> block = getOverflowBlock(i);
 
-      sb.append(i).append(" ").append(block);
+      sb.append("---------------------------------------")
+          .append("\n")
+          .append(i)
+          .append(" ")
+          .append(block)
+          .append("\n");
     }
 
     return sb.toString();

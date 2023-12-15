@@ -257,11 +257,11 @@ public class Block<T extends Record> implements IConvertableToBytes {
         .append("\n valid records: ")
         .append(validRecordsCount)
         .append("\n")
-        .append("Records: ");
-    //    for (int i = 0; i < validRecordsCount; i++) {
-    //      sb.append(records[i].toString()).append("\n");
-    //    }
-    sb.append(";\n");
+        .append("Records: [\n");
+    for (int i = 0; i < validRecordsCount; i++) {
+      sb.append("\t").append(records[i].toString()).append("\n");
+    }
+    sb.append("];\n");
 
     return sb.toString();
   }

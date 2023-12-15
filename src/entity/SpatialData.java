@@ -164,6 +164,10 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     this.description = description;
   }
 
+  public void setDescription(String description) {
+    this.description = new LimitedString(maximumDescriptionSize, description);
+  }
+
   public List<T> getRelatedDataList() {
     return relatedDataList;
   }
@@ -209,19 +213,24 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     return bitSet;
   }
 
+  @Override
+  public int getMaxHashSize() {
+    return 3;
+  }
+
   public String toString(String className) {
     if (relatedDataList == null) {
       return className
-        + "{"
-        + "identificationNumber="
-        + identificationNumber
-        + ", description='"
-        + description
-        + '\''
-        + ", shape="
-        + shape
-        + '}'
-        + ", relatedDataList=[]";
+          + "{"
+          + "identificationNumber="
+          + identificationNumber
+          + ", description='"
+          + description
+          + '\''
+          + ", shape="
+          + shape
+          + '}'
+          + ", relatedDataList=[]";
     }
 
     StringBuilder sb = new StringBuilder();
@@ -232,8 +241,9 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
               .append(" ")
               .append("Description: '")
               .append(data.getDescription())
-              .append("' ")
-              .append(data.getShapeOfData());
+              .append("' \n")
+              .append("Shape: ")
+              .append(data.getShapeOfData() != null ? getShapeOfData() : "-");
         });
 
     return className
@@ -263,7 +273,7 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     //        && ((castedObj.shape == null && shape == null)
     //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
     return identificationNumber == castedObj.getIdentificationNumber();
-//        && ((castedObj.shape == null && shape == null)
-//            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }
 }

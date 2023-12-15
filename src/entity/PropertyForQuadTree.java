@@ -17,6 +17,26 @@ public class PropertyForQuadTree implements IShapeData {
   }
 
   @Override
+  public String toString() {
+    return "PropertyForQuadTree{"
+        + "identificationNumber="
+        + identificationNumber
+        + ", shape="
+        + shape
+        + '}';
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof PropertyForQuadTree)) {
+      return false;
+    }
+
+    return shape.equals(((PropertyForQuadTree) obj).shape)
+        && identificationNumber == ((PropertyForQuadTree) obj).identificationNumber;
+  }
+
+  @Override
   public Rectangle getShapeOfData() {
     return shape;
   }
