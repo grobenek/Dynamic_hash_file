@@ -104,22 +104,22 @@ public class MainWindow extends JFrame implements IMainWindow {
 
     saveButton.addActionListener(
         e -> {
-          //          saveDataFromFile("parcels.csv", DataType.PARCEL, new CsvBuilder());
-          //          saveDataFromFile("properties.csv", DataType.PROPERTY, new CsvBuilder());
+          controller.saveToFile();
         });
 
     loadButton.addActionListener(
         e -> {
-          //          loadDataFromFile("parcels.csv", new CsvBuilder());
-          //          loadDataFromFile("properties.csv", new CsvBuilder());
+          controller.loadFromFile();
         });
-    displayPropertyOverflowFileBlock.addActionListener(e -> {
-      resultText.setText(controller.getPropertyOverflowSequenceString());
-    });
+    displayPropertyOverflowFileBlock.addActionListener(
+        e -> {
+          resultText.setText(controller.getPropertyOverflowSequenceString());
+        });
 
-    displayParcelOverflowFileBlock.addActionListener(e -> {
-      resultText.setText(controller.getParcelOverflowSequenceString());
-    });
+    displayParcelOverflowFileBlock.addActionListener(
+        e -> {
+          resultText.setText(controller.getParcelOverflowSequenceString());
+        });
   }
 
   @Override

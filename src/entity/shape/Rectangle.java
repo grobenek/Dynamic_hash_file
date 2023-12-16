@@ -1,6 +1,8 @@
 package entity.shape;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import structure.dynamichashfile.entity.IConvertableToBytes;
 import structure.quadtree.IShapeData;
 
@@ -40,11 +42,19 @@ public class Rectangle implements IShapeData, IConvertableToBytes {
             Math.max(firstPoint.lengthCoordinate(), secondPoint.lengthCoordinate()));
 
     this.width = Math.abs(firstPoint.widthCoordinate() - secondPoint.widthCoordinate());
+    this.width = BigDecimal.valueOf(this.width).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
     this.length = Math.abs(firstPoint.lengthCoordinate() - secondPoint.lengthCoordinate());
+    this.length = BigDecimal.valueOf(this.length).setScale(2, RoundingMode.HALF_UP).doubleValue();
 
     this.halfWidth = (this.firstPoint.widthCoordinate() + this.secondPoint.widthCoordinate()) / 2;
+    this.halfWidth =
+        BigDecimal.valueOf(this.halfWidth).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
     this.halfLength =
         (this.firstPoint.lengthCoordinate() + this.secondPoint.lengthCoordinate()) / 2;
+    this.halfLength =
+        BigDecimal.valueOf(this.halfLength).setScale(2, RoundingMode.HALF_UP).doubleValue();
   }
 
   public GpsCoordinates getFirstPoint() {

@@ -46,4 +46,8 @@ public interface IController extends IObserver {
   String getPropertyOverflowSequenceString();
 
   String getParcelOverflowSequenceString();
+
+  void saveToFile();
+
+  void loadFromFile();
 }

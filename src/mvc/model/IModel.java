@@ -3,6 +3,7 @@ package mvc.model;
 import entity.Parcel;
 import entity.Property;
 import entity.shape.Rectangle;
+import java.io.IOException;
 import mvc.view.observable.IStructuresWrapperObservable;
 
 public interface IModel extends AutoCloseable, IStructuresWrapperObservable {
@@ -43,4 +44,8 @@ public interface IModel extends AutoCloseable, IStructuresWrapperObservable {
   String getPropertyOverflowSequenceString();
 
   String getParcelOverflowSequenceString();
+
+  void saveToFile() throws IOException;
+
+  void loadFromFile() throws IOException;
 }

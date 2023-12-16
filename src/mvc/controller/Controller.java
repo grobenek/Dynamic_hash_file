@@ -3,6 +3,7 @@ package mvc.controller;
 import entity.Parcel;
 import entity.Property;
 import entity.shape.Rectangle;
+import java.io.IOException;
 import mvc.model.IModel;
 import mvc.view.IMainWindow;
 import mvc.view.observable.IObservable;
@@ -165,6 +166,24 @@ public class Controller implements IController {
     } catch (Exception e) {
       view.showPopupMessage(e.getLocalizedMessage());
       return "";
+    }
+  }
+
+  @Override
+  public void saveToFile() {
+    try {
+      model.saveToFile();
+    } catch (IOException e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
+  }
+
+  @Override
+  public void loadFromFile() {
+    try {
+      model.loadFromFile();
+    } catch (IOException e) {
+      view.showPopupMessage(e.getLocalizedMessage());
     }
   }
 

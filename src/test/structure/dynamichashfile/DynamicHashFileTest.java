@@ -32,7 +32,8 @@ class DynamicHashFileTest {
       List<Parcel> insertedItems = new ArrayList<>();
 
       try (DynamicHashFile<Parcel> dynamicHashFile =
-          new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, Parcel.class)) {
+          new DynamicHashFile<>(
+              "test" + repetetion + ".sz", "overflow" + repetetion + ".sz", 5, 10, Parcel.class)) {
         for (int i = 0; i < NUMBER_OF_ACTIONS_IN_REPETETION; i++) {
           GpsCoordinates firstPoint =
               new GpsCoordinates(

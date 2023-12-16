@@ -1,16 +1,20 @@
 package structure.dynamichashfile;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.BitSet;
-import structure.dynamichashfile.trie.*;
+import java.util.List;
+import java.util.Stack;
 import structure.dynamichashfile.entity.Block;
 import structure.dynamichashfile.entity.record.Record;
 import structure.dynamichashfile.entity.record.RecordFactory;
+import structure.dynamichashfile.trie.*;
+import util.file.dynamichashfile.DynamicHashFileInfo;
 
 public class DynamicHashFile<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();
-  private final Trie trie;
   private final FileBlockManager<T> fileBlockManager;
+  private Trie trie;
 
   public DynamicHashFile(
       String pathToMainFile,
@@ -29,6 +33,26 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
             tClass);
 
     this.trie = new Trie(RecordFactory.getDummyInstance(tClass).getMaxHashSize());
+  }
+
+  public DynamicHashFile(
+      String pathToMainFile,
+      String pathToOverflowFile,
+      int blockingFactorOfMainFile,
+      int blockingFactorOfOverflowFile,
+      Class<T> tClass,
+      InnerTrieNode rootOfTrie)
+      throws IOException {
+
+    this.fileBlockManager =
+        new FileBlockManager<>(
+            pathToMainFile,
+            blockingFactorOfMainFile,
+            pathToOverflowFile,
+            blockingFactorOfOverflowFile,
+            tClass);
+
+    this.trie = new Trie(rootOfTrie, RecordFactory.getDummyInstance(tClass).getMaxHashSize());
   }
 
   private static <T extends Record> Record[] getDataToFill(T recordToInsert, Block<T> block) {
@@ -272,6 +296,61 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     fileBlockManager.close();
   }
 
+  public List<TrieNode> getTrieNodes() {
+    List<TrieNode> nodes = new ArrayList<>();
+
+    Stack<TrieNode> nodesStack = new Stack<>();
+    nodesStack.push(trie.root);
+
+    while (!nodesStack.isEmpty()) {
+      TrieNode currentNode = nodesStack.pop();
+      nodes.add(currentNode);
+
+      if (currentNode instanceof InnerTrieNode innerCurrentNode) {
+        if (innerCurrentNode.getRightSon() != null) {
+          nodesStack.push(innerCurrentNode.getRightSon());
+        } else {
+          nodes.add(null);
+        }
+
+        if (innerCurrentNode.getLeftSon() != null) {
+          nodesStack.push(innerCurrentNode.getLeftSon());
+        } else {
+          nodes.add(null);
+        }
+      }
+    }
+
+    return nodes;
+  }
+
+  public int getTrieMaxDepth() {
+    return trie.maxDepth;
+  }
+
+  public DynamicHashFileInfo getInfo() {
+    return new DynamicHashFileInfo(
+        fileBlockManager.getMainFileBlockingFactor(),
+        fileBlockManager.getOverflowFileBlockingFactor(),
+        fileBlockManager.getTClass(),
+        fileBlockManager.getMainFilePath(),
+        fileBlockManager.getOvetflowFilePath());
+  }
+
+  public void setTrie(InnerTrieNode root) {
+    trie =
+        new Trie(
+            root, RecordFactory.getDummyInstance(fileBlockManager.getTClass()).getMaxHashSize());
+  }
+
+  public void setMainFileBlockingFactor(int mainFileBlockingFactor) {
+    fileBlockManager.setMainFileBlockingFactor(mainFileBlockingFactor);
+  }
+
+  public void setOverflowFileBlockingFactor(int overflowFileBlockingFactor) {
+    fileBlockManager.setOverflowFileBlockingFactor(overflowFileBlockingFactor);
+  }
+
   private class Trie {
     private final InnerTrieNode root;
     private final int maxDepth;
@@ -281,14 +360,19 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       root.setLeftSon(new LeafTrieNode(root, maxDepth));
       root.setRightSon(new LeafTrieNode(root, maxDepth));
 
-      long leftSonAddress = fileBlockManager.getNewMainBlockAddress();
-      long rightSonAddress = fileBlockManager.getNewMainBlockAddress();
-      ((LeafTrieNode) root.getLeftSon()).setAddressOfData(leftSonAddress);
-      ((LeafTrieNode) root.getRightSon()).setAddressOfData(rightSonAddress);
+      //      long leftSonAddress = fileBlockManager.getNewMainBlockAddress();
+      //      long rightSonAddress = fileBlockManager.getNewMainBlockAddress();
+      //      ((LeafTrieNode) root.getLeftSon()).setAddressOfData(leftSonAddress);
+      //      ((LeafTrieNode) root.getRightSon()).setAddressOfData(rightSonAddress);
+      //
+      //      fileBlockManager.createMainBlock(leftSonAddress);
+      //      fileBlockManager.createMainBlock(rightSonAddress);
 
-      fileBlockManager.createMainBlock(leftSonAddress);
-      fileBlockManager.createMainBlock(rightSonAddress);
+      this.maxDepth = maxDepth;
+    }
 
+    private Trie(InnerTrieNode root, int maxDepth) {
+      this.root = root;
       this.maxDepth = maxDepth;
     }
 
@@ -321,7 +405,14 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           continue;
         }
 
-        return ((LeafTrieNode) currentNode);
+        // if node has no address, create one
+        LeafTrieNode currentLeafNode = (LeafTrieNode) currentNode;
+        if (currentLeafNode.getAddressOfData() == INVALID_ADDRESS) {
+          currentLeafNode.setAddressOfData(fileBlockManager.getNewMainBlockAddress());
+          fileBlockManager.createMainBlock(currentLeafNode.getAddressOfData());
+        }
+
+        return currentLeafNode;
       } while (currentBitSetIndex != maxDepth + 1);
 
       return LeafTrieNode.getInvalidAddressNode();
@@ -507,7 +598,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       }
 
       int itemCountOfChildren =
-          leftChild.getDataSizeInOverflowBlock() + rightChild.getDataSizeInOverflowBlock();
+          leftChild.getDataSizeInMainBlock() + rightChild.getDataSizeInMainBlock();
       if (itemCountOfChildren > fileBlockManager.getMainFileBlockingFactor()) {
         throw new IllegalStateException(
             String.format(
@@ -595,8 +686,8 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
               ? (LeafTrieNode) currentNode.getRightSon()
               : null;
 
-      int leftChildSize = leftChild != null ? leftChild.getDataSizeInOverflowBlock() : 0;
-      int rightChildSize = rightChild != null ? rightChild.getDataSizeInOverflowBlock() : 0;
+      int leftChildSize = leftChild != null ? leftChild.getDataSizeInMainBlock() : 0;
+      int rightChildSize = rightChild != null ? rightChild.getDataSizeInMainBlock() : 0;
 
       int itemCountOfChildren = leftChildSize + rightChildSize;
 
@@ -606,6 +697,10 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       return itemCountOfChildren <= fileBlockManager.getMainFileBlockingFactor()
           && leftChildOverflowBlock
           && rightChildOverflowBlock;
+    }
+
+    public int getMaxDepth() {
+      return maxDepth;
     }
   }
 }

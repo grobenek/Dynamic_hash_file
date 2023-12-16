@@ -5,12 +5,22 @@ import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import mvc.view.observable.IObserver;
 import structure.dynamichashfile.DynamicHashFile;
+import structure.dynamichashfile.trie.InnerTrieNode;
+import structure.dynamichashfile.trie.TrieNode;
 import structure.quadtree.QuadTree;
+import util.file.IFileBuilder;
+import util.file.IOManager;
+import util.file.dynamichashfile.DynamicHashFileInfo;
+import util.file.dynamichashfile.DynamicHashFileInfoBuilder;
+import util.file.dynamichashfile.TextBuilderTrie;
+import util.file.quadtree.CsvBuilderQuadTreeData;
 
 public class ModelWrapper implements IModel {
   private final Random random = new Random();
@@ -440,21 +450,28 @@ public class ModelWrapper implements IModel {
       Rectangle quadTreeShape = propertyQuadTree.getShape();
 
       double x1 =
-          (random.nextDouble(
+          random.nextDouble(
               quadTreeShape.getFirstPoint().widthCoordinate(),
-              quadTreeShape.getSecondPoint().widthCoordinate()));
+              quadTreeShape.getSecondPoint().widthCoordinate());
+      x1 = BigDecimal.valueOf(x1).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
       double y1 =
-          (random.nextDouble(
+          random.nextDouble(
               quadTreeShape.getFirstPoint().lengthCoordinate(),
-              quadTreeShape.getSecondPoint().lengthCoordinate()));
+              quadTreeShape.getSecondPoint().lengthCoordinate());
+      y1 = BigDecimal.valueOf(y1).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
       double x2 =
-          (random.nextDouble(
+          random.nextDouble(
               quadTreeShape.getFirstPoint().widthCoordinate(),
-              quadTreeShape.getSecondPoint().widthCoordinate()));
+              quadTreeShape.getSecondPoint().widthCoordinate());
+      x2 = BigDecimal.valueOf(x2).setScale(2, RoundingMode.HALF_UP).doubleValue();
+
       double y2 =
-          (random.nextDouble(
+          random.nextDouble(
               quadTreeShape.getFirstPoint().lengthCoordinate(),
-              quadTreeShape.getSecondPoint().lengthCoordinate()));
+              quadTreeShape.getSecondPoint().lengthCoordinate());
+      y2 = BigDecimal.valueOf(y2).setScale(2, RoundingMode.HALF_UP).doubleValue();
 
       GpsCoordinates firstPointOfItem = new GpsCoordinates(Direction.S, x1, Direction.W, y1);
       GpsCoordinates secondPointOfItem = new GpsCoordinates(Direction.S, x2, Direction.W, y2);
@@ -511,6 +528,128 @@ public class ModelWrapper implements IModel {
   @Override
   public String getParcelOverflowSequenceString() {
     return parcelDynamicHashFile.sequenceToStringOverflowFile();
+  }
+
+  @Override
+  public void saveToFile() throws IOException {
+    IOManager<SpatialDataForQuadTree> quadTreeManager =
+        new IOManager<>(new CsvBuilderQuadTreeData<>());
+
+    quadTreeManager.saveToFile(
+        "quadProperties.sz", propertyQuadTree.search(propertyQuadTree.getShape()));
+    quadTreeManager.saveToFile("quadParecls.sz", parcelQuadTree.search(parcelQuadTree.getShape()));
+
+    // saving Trie
+    IOManager<TrieNode> trieIOManager = new IOManager<>(new TextBuilderTrie<>());
+    trieIOManager.saveToFile("trieProperties.sz", propertyDynamicHashFile.getTrieNodes());
+    trieIOManager.saveToFile("trieParcels.sz", parcelDynamicHashFile.getTrieNodes());
+
+    //    // saving depth of trie
+    //    IOManager<Integer> trieDepthManager = new IOManager<>(new IntegerBuilder());
+    //    trieDepthManager.saveToFile(
+    //        "triePropertiesDepth.sz", List.of(propertyDynamicHashFile.getTrieMaxDepth()));
+    //    trieDepthManager.saveToFile(
+    //        "trieParcelsDepth.sz", List.of(parcelDynamicHashFile.getTrieMaxDepth()));
+
+    // saving dynamic files info
+    IOManager<DynamicHashFileInfo> dynamicHashFileIOManager =
+        new IOManager<>(new DynamicHashFileInfoBuilder());
+    dynamicHashFileIOManager.saveToFile(
+        "dynamicHashFileInfoProperties.sz", List.of(propertyDynamicHashFile.getInfo()));
+    dynamicHashFileIOManager.saveToFile(
+        "dynamicHashFileInfoParcels.sz", List.of(parcelDynamicHashFile.getInfo()));
+  }
+
+  @Override
+  public void loadFromFile() throws IOException {
+    IFileBuilder<SpatialDataForQuadTree> quadTreeBuilder = new CsvBuilderQuadTreeData<>();
+    IOManager<SpatialDataForQuadTree> quadTreeManager = new IOManager<>(quadTreeBuilder);
+
+    quadTreeManager.loadFromFile("quadProperties.sz");
+    List<SpatialDataForQuadTree> quadTreePropertyList = quadTreeBuilder.getLoadedData();
+    quadTreeBuilder.clearLoadedData();
+
+    quadTreeManager.loadFromFile("quadParecls.sz");
+    List<SpatialDataForQuadTree> quadTreeParcelList = quadTreeBuilder.getLoadedData();
+    quadTreeBuilder.clearLoadedData();
+
+    for (SpatialDataForQuadTree property : quadTreePropertyList) {
+      propertyQuadTree.insert(property);
+    }
+
+    for (SpatialDataForQuadTree parcel : quadTreeParcelList) {
+      parcelQuadTree.insert(parcel);
+    }
+
+    // loading Trie
+    IFileBuilder<TrieNode> trieNodeBuilder = new TextBuilderTrie<>();
+    IOManager<TrieNode> trieIOManager = new IOManager<>(trieNodeBuilder);
+    trieIOManager.loadFromFile("trieProperties.sz");
+
+    List<TrieNode> propertyTrieNodes = trieNodeBuilder.getLoadedData();
+    trieNodeBuilder.clearLoadedData();
+
+    trieIOManager.loadFromFile("trieParcels.sz");
+
+    List<TrieNode> parcelTrieNodes = trieNodeBuilder.getLoadedData();
+    trieNodeBuilder.clearLoadedData();
+
+    //    // loading depth of trie
+    //    IFileBuilder<Integer> integerBuilder = new IntegerBuilder();
+    //    IOManager<Integer> trieDepthManager = new IOManager<>(integerBuilder);
+    //
+    //    trieDepthManager.loadFromFile("triePropertiesDepth.sz");
+    //    int depthOfPropertyTrie = integerBuilder.getLoadedData().get(0);
+    //
+    //    trieDepthManager.loadFromFile("trieParcelsDepth.sz");
+    //    int depthOfParcelTrie = integerBuilder.getLoadedData().get(0);
+
+    // loading dynamic files info
+    IFileBuilder<DynamicHashFileInfo> fileInfoBuilder = new DynamicHashFileInfoBuilder();
+    IOManager<DynamicHashFileInfo> dynamicHashFileIOManager = new IOManager<>(fileInfoBuilder);
+
+    dynamicHashFileIOManager.loadFromFile("dynamicHashFileInfoProperties.sz");
+    DynamicHashFileInfo propertyFileInfo = fileInfoBuilder.getLoadedData().get(0);
+    fileInfoBuilder.clearLoadedData();
+
+    dynamicHashFileIOManager.loadFromFile("dynamicHashFileInfoParcels.sz");
+    DynamicHashFileInfo parcelFileInfo = fileInfoBuilder.getLoadedData().get(0);
+    fileInfoBuilder.clearLoadedData();
+
+    //    propertyDynamicHashFile.setTrie((InnerTrieNode) propertyTrieNodes.get(0));
+    //    parcelDynamicHashFile.setTrie((InnerTrieNode) parcelTrieNodes.get(0));
+    //
+    //
+    // propertyDynamicHashFile.setMainFileBlockingFactor(propertyFileInfo.blockingFactorOfMainFile());
+    //    propertyDynamicHashFile.setOverflowFileBlockingFactor(
+    //        propertyFileInfo.blockingFactorOfOverflowFile());
+    //
+    //
+    // parcelDynamicHashFile.setMainFileBlockingFactor(parcelFileInfo.blockingFactorOfMainFile());
+    //    parcelDynamicHashFile.setOverflowFileBlockingFactor(
+    //        parcelFileInfo.blockingFactorOfOverflowFile());
+
+    propertyDynamicHashFile =
+        (DynamicHashFile<Property>)
+            new DynamicHashFile<>(
+                propertyFileInfo.pathToMainFile(),
+                propertyFileInfo.pathToOverflowFile(),
+                propertyFileInfo.blockingFactorOfMainFile(),
+                propertyFileInfo.blockingFactorOfOverflowFile(),
+                propertyFileInfo.tClass(),
+                (InnerTrieNode) propertyTrieNodes.get(0));
+
+    parcelDynamicHashFile =
+        (DynamicHashFile<Parcel>)
+            new DynamicHashFile<>(
+                parcelFileInfo.pathToMainFile(),
+                parcelFileInfo.pathToOverflowFile(),
+                parcelFileInfo.blockingFactorOfMainFile(),
+                parcelFileInfo.blockingFactorOfOverflowFile(),
+                parcelFileInfo.tClass(),
+                (InnerTrieNode) parcelTrieNodes.get(0));
+
+    sendNotifications();
   }
 
   private int getNewParcelIdentificationNumber() {

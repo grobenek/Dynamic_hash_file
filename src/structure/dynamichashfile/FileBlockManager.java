@@ -4,19 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import structure.dynamichashfile.constant.ElementByteSize;
-import structure.dynamichashfile.trie.LeafTrieNode;
 import structure.dynamichashfile.entity.Block;
 import structure.dynamichashfile.entity.record.Record;
 import structure.dynamichashfile.entity.record.RecordFactory;
+import structure.dynamichashfile.trie.LeafTrieNode;
 
 class FileBlockManager<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();
+  private final String mainFilePath;
+  private final String ovetflowFilePath;
   private final RandomAccessFile mainFileStream;
   private final RandomAccessFile overflowFileStream;
-  private final int mainFileBlockingFactor;
-  private final int overflowFileBlockingFactor;
   private final Class<T> tClass;
   private final T tDummyInstance;
+  private int mainFileBlockingFactor;
+  private int overflowFileBlockingFactor;
   private long firstFreeBlockAddressFromMainFile;
   private long firstFreeBlockAddressFromOverflowFile;
 
@@ -30,9 +32,8 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     File mainFile = new File(mainFilePath);
     File overflowFile = new File(overflowFilePath);
 
-    resetFile(mainFile);
-    resetFile(overflowFile);
-
+    this.mainFilePath = mainFilePath;
+    this.ovetflowFilePath = overflowFilePath;
     this.mainFileStream = new RandomAccessFile(mainFile, "rw");
     this.overflowFileStream = new RandomAccessFile(overflowFile, "rw");
     this.mainFileBlockingFactor = mainBlockingFactor;
@@ -56,6 +57,14 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     }
   }
 
+  public String getMainFilePath() {
+    return mainFilePath;
+  }
+
+  public String getOvetflowFilePath() {
+    return ovetflowFilePath;
+  }
+
   public Class<T> getTClass() {
     return tClass;
   }
@@ -64,8 +73,16 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     return mainFileBlockingFactor;
   }
 
+  public void setMainFileBlockingFactor(int mainFileBlockingFactor) {
+    this.mainFileBlockingFactor = mainFileBlockingFactor;
+  }
+
   public int getOverflowFileBlockingFactor() {
     return overflowFileBlockingFactor;
+  }
+
+  public void setOverflowFileBlockingFactor(int overflowFileBlockingFactor) {
+    this.overflowFileBlockingFactor = overflowFileBlockingFactor;
   }
 
   public Block<T> getMainBlock(long address) {
@@ -110,7 +127,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
       //              getAddressLastEmptyBlockFromEndOfFile(addressOfData, blockToDelete, true));
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInOverflowBlock());
+      nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInMainBlock());
       blockToDelete.clear();
       writeMainBlock(blockToDelete, addressOfData);
 
@@ -296,7 +313,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
           addressOfData); // TODO treba pozriet aj predchodcu a zmazat ak tak
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInOverflowBlock());
+      nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInReserveBlock());
       blockToDelete.clear();
       writeOverflowBlock(blockToDelete, addressOfData);
 
@@ -432,5 +449,13 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     System.out.println("MANAGER: CLOSING FILES");
     mainFileStream.close();
     overflowFileStream.close();
+  }
+
+  public long getFirstFreeBlockAddressFromMainFile() {
+    return firstFreeBlockAddressFromMainFile;
+  }
+
+  public long getFirstFreeBlockAddressFromOverflowFile() {
+    return firstFreeBlockAddressFromOverflowFile;
   }
 }

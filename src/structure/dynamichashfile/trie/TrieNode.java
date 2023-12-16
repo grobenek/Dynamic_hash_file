@@ -11,8 +11,10 @@ public abstract class TrieNode {
     depth = (parent == null) ? 0 : Math.min(parent.depth + 1, maxDepth);
   }
 
-  public TrieNode() {}
-  ;
+  public TrieNode() {
+    this.parent = null;
+    depth = 0;
+  }
 
   public TrieNode getParent() {
     return parent;
@@ -20,6 +22,7 @@ public abstract class TrieNode {
 
   public TrieNode setParent(TrieNode parent) {
     this.parent = parent;
+    depth = parent.getDepth() + 1;
     return this;
   }
 

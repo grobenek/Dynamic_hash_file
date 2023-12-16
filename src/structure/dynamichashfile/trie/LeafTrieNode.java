@@ -11,10 +11,7 @@ public class LeafTrieNode extends TrieNode {
   private int dataSizeInMainBlock;
   private int dataSizeInReserveBlocks;
 
-  public LeafTrieNode(TrieNode parent, long addressOfData, int maxDepth) {
-    super(parent, maxDepth);
-    this.addressOfData = addressOfData;
-  }
+  public LeafTrieNode() {}
 
   public LeafTrieNode(TrieNode parent, int maxDepth) {
     super(parent, maxDepth);
@@ -53,11 +50,16 @@ public class LeafTrieNode extends TrieNode {
     dataSizeInReserveBlocks -= count;
   }
 
-  public int getDataSizeInOverflowBlock() {
+  public int getDataSizeInMainBlock() {
     return dataSizeInMainBlock;
   }
 
-  public int getDataSizeInReserveBlocks() {
+  public LeafTrieNode setDataSizeInMainBlock(int dataSizeInMainBlock) {
+    this.dataSizeInMainBlock = dataSizeInMainBlock;
+    return this;
+  }
+
+  public int getDataSizeInReserveBlock() {
     return dataSizeInReserveBlocks;
   }
 
@@ -76,5 +78,10 @@ public class LeafTrieNode extends TrieNode {
 
   public void addDataInReserveBlocks(int count) {
     dataSizeInReserveBlocks += count;
+  }
+
+  public LeafTrieNode setDataSizeInReserveBlocks(int dataSizeInReserveBlocks) {
+    this.dataSizeInReserveBlocks = dataSizeInReserveBlocks;
+    return this;
   }
 }
