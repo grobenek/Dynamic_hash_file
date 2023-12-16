@@ -6,6 +6,8 @@ import entity.Parcel;
 import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +15,8 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class DynamicHashFileTest {
-  private static final int NUMBER_OF_REPETETIONS = 1000;
-  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 500;
+  private static final int NUMBER_OF_REPETETIONS = 100;
+  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 5000;
 
   @Test
   void testAllOperations() {
@@ -27,13 +29,34 @@ class DynamicHashFileTest {
     }
 
     for (int repetetion = 0; repetetion < NUMBER_OF_REPETETIONS; repetetion++) {
-      Random random = new Random(repetetion);
+      File mainFile = new File("test.sz");
+      File overflowFile = new File("overflow.sz");
+
+      if (mainFile.exists()) {
+        mainFile.delete();
+      }
+        try {
+            mainFile.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (overflowFile.exists()) {
+        overflowFile.delete();
+      }
+        try {
+            overflowFile.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Random random = new Random(repetetion);
 
       List<Parcel> insertedItems = new ArrayList<>();
 
       try (DynamicHashFile<Parcel> dynamicHashFile =
           new DynamicHashFile<>(
-              "test" + repetetion + ".sz", "overflow" + repetetion + ".sz", 5, 10, Parcel.class)) {
+              "test.sz", "overflow.sz", 5, 10, Parcel.class)) {
         for (int i = 0; i < NUMBER_OF_ACTIONS_IN_REPETETION; i++) {
           GpsCoordinates firstPoint =
               new GpsCoordinates(

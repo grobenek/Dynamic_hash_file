@@ -121,10 +121,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
 
     if (isMainBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
-      mainFileStream.setLength(addressOfData);
-      //      mainFileStream.setLength( //TODO toto spravit, ale asi niekde v trie, lebo ked to
-      // vymazem a trie o tom nevie, tak pristupujem k datam mimo file - ale mozno to staci takto
-      //              getAddressLastEmptyBlockFromEndOfFile(addressOfData, blockToDelete, true));
+      mainFileStream.setLength(addressOfData); //TODO mozno pozriet ci sa nebude dat nejako rekurzivne pozerat stale - ale to az ked vsetko ostatne bude
     } else {
       // block is in the middle - clear it and put it in free blocks
       nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInMainBlock());
@@ -154,8 +151,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     return addressOfCurrentBlock;
   }
 
-  private boolean isMainBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
-      throws IOException {
+  public boolean isMainBlockOnTheEndOfFile(long address, Block<T> blockToCheck) throws IOException {
     return address + blockToCheck.getByteSize() == mainFileStream.length();
   }
 
@@ -310,7 +306,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     if (isOverflowBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
       overflowFileStream.setLength(
-          addressOfData); // TODO treba pozriet aj predchodcu a zmazat ak tak
+          addressOfData);
     } else {
       // block is in the middle - clear it and put it in free blocks
       nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInReserveBlock());
@@ -350,7 +346,7 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     writeOverflowBlock(blockToDelete, addressOfData);
   }
 
-  private boolean isOverflowBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
+  public boolean isOverflowBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
       throws IOException {
     return address + blockToCheck.getByteSize() == overflowFileStream.length();
   }

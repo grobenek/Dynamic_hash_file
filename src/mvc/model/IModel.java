@@ -11,13 +11,14 @@ public interface IModel extends AutoCloseable, IStructuresWrapperObservable {
 
   Parcel findParcel(int parcelIdentificationNumber);
 
-  void insertProperty(int registrationNumber, String description, Rectangle shape);
+  void insertProperty(int registrationNumber, String description, Rectangle shape)
+      throws IOException;
 
-  void insertParcel(String description, Rectangle shape);
+  void insertParcel(String description, Rectangle shape) throws IOException;
 
-  void removeProperty(int propertyIdentificationNumber);
+  void removeProperty(int propertyIdentificationNumber) throws IOException;
 
-  void removeParcel(int parcelIdentificationNumber);
+  void removeParcel(int parcelIdentificationNumber) throws IOException;
 
   void editProperty(Property propertyToEdit, Property editedProperty);
 

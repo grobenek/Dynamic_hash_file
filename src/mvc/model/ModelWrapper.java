@@ -89,7 +89,8 @@ public class ModelWrapper implements IModel {
   }
 
   @Override
-  public void insertProperty(int registrationNumber, String description, Rectangle shape) {
+  public void insertProperty(int registrationNumber, String description, Rectangle shape)
+      throws IOException {
     int newPropertyIdentificationNumber = getNewPropertyIdentificationNumber();
     PropertyForQuadTree propertyForQuadTree =
         new PropertyForQuadTree(newPropertyIdentificationNumber, shape);
@@ -140,7 +141,7 @@ public class ModelWrapper implements IModel {
   }
 
   @Override
-  public void insertParcel(String description, Rectangle shape) {
+  public void insertParcel(String description, Rectangle shape) throws IOException {
     int newParcelIdentificationNumber = getNewParcelIdentificationNumber();
     ParcelForQuadTree parcelForQuadTree =
         new ParcelForQuadTree(newParcelIdentificationNumber, shape);
@@ -186,7 +187,7 @@ public class ModelWrapper implements IModel {
   }
 
   @Override
-  public void removeProperty(int propertyIdentificationNumber) {
+  public void removeProperty(int propertyIdentificationNumber) throws IOException {
     Property propertyToDelete =
         propertyDynamicHashFile.find(new Property(propertyIdentificationNumber));
 
@@ -204,7 +205,7 @@ public class ModelWrapper implements IModel {
   }
 
   @Override
-  public void removeParcel(int parcelIdentificationNumber) {
+  public void removeParcel(int parcelIdentificationNumber) throws IOException {
     Parcel parcelToDelete = parcelDynamicHashFile.find(new Parcel(parcelIdentificationNumber));
 
     for (Property property : parcelToDelete.getRelatedDataList()) {
@@ -481,7 +482,7 @@ public class ModelWrapper implements IModel {
             random.nextInt(10000),
             String.valueOf(random.nextInt(10000)),
             new Rectangle(firstPointOfItem, secondPointOfItem));
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // do not insert and continue if insert criteria are not met
       }
     }
@@ -514,7 +515,7 @@ public class ModelWrapper implements IModel {
         insertParcel(
             String.valueOf(random.nextInt(10000)),
             new Rectangle(firstPointOfItem, secondPointOfItem));
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // do not insert and continue if insert criteria are not met
       }
     }
