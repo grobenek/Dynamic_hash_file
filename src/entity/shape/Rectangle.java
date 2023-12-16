@@ -1,7 +1,7 @@
 package entity.shape;
 
 import java.io.*;
-import structure.entity.IConvertableToBytes;
+import structure.dynamichashfile.entity.IConvertableToBytes;
 import structure.quadtree.IShapeData;
 
 public class Rectangle implements IShapeData, IConvertableToBytes {

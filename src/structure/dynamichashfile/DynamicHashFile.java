@@ -3,9 +3,9 @@ package structure.dynamichashfile;
 import java.io.*;
 import java.util.BitSet;
 import structure.dynamichashfile.trie.*;
-import structure.entity.Block;
-import structure.entity.record.Record;
-import structure.entity.record.RecordFactory;
+import structure.dynamichashfile.entity.Block;
+import structure.dynamichashfile.entity.record.Record;
+import structure.dynamichashfile.entity.record.RecordFactory;
 
 public class DynamicHashFile<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();

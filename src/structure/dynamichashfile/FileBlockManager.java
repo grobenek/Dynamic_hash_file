@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import structure.dynamichashfile.constant.ElementByteSize;
 import structure.dynamichashfile.trie.LeafTrieNode;
-import structure.entity.Block;
-import structure.entity.record.Record;
-import structure.entity.record.RecordFactory;
+import structure.dynamichashfile.entity.Block;
+import structure.dynamichashfile.entity.record.Record;
+import structure.dynamichashfile.entity.record.RecordFactory;
 
 class FileBlockManager<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();

@@ -6,8 +6,8 @@ import entity.shape.Rectangle;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import structure.entity.LimitedString;
-import structure.entity.record.Record;
+import structure.dynamichashfile.entity.LimitedString;
+import structure.dynamichashfile.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public class Parcel extends SpatialData<Property> implements IShapeData {

@@ -1,7 +1,7 @@
-package structure.entity.record;
+package structure.dynamichashfile.entity.record;
 
 import java.util.BitSet;
-import structure.entity.IConvertableToBytes;
+import structure.dynamichashfile.entity.IConvertableToBytes;
 
 /**
  * Abstract class requiered for DynamicHashFile.

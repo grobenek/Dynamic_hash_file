@@ -1,11 +1,11 @@
-package structure.entity;
+package structure.dynamichashfile.entity;
 
 import entity.RecordDataFactory;
 import java.io.*;
 import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
-import structure.entity.record.Record;
-import structure.entity.record.RecordFactory;
+import structure.dynamichashfile.entity.record.Record;
+import structure.dynamichashfile.entity.record.RecordFactory;
 
 public class Block<T extends Record> implements IConvertableToBytes {
   private static final int INVALID_ADDRESS = -1;

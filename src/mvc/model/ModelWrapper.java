@@ -15,16 +15,16 @@ import structure.quadtree.QuadTree;
 public class ModelWrapper implements IModel {
   private final Random random = new Random();
   private List<IObserver> observers;
-  private QuadTree<PropertyForQuadTree> propertyQuadTree;
-  private QuadTree<ParcelForQuadTree> parcelQuadTree;
+  private QuadTree<SpatialDataForQuadTree> propertyQuadTree;
+  private QuadTree<SpatialDataForQuadTree> parcelQuadTree;
   private DynamicHashFile<Property> propertyDynamicHashFile;
   private DynamicHashFile<Parcel> parcelDynamicHashFile;
   private int propertyIdentificationNumberSequence;
   private int parcelIdentificationNumberSequence;
 
   public ModelWrapper(
-      QuadTree<PropertyForQuadTree> propertyQuadTree,
-      QuadTree<ParcelForQuadTree> parcelQuadTree,
+      QuadTree<SpatialDataForQuadTree> propertyQuadTree,
+      QuadTree<SpatialDataForQuadTree> parcelQuadTree,
       DynamicHashFile<Property> propertyDynamicHashFile,
       DynamicHashFile<Parcel> parcelDynamicHashFile,
       int propertyIdentificationNumberSequence,
@@ -84,7 +84,7 @@ public class ModelWrapper implements IModel {
     PropertyForQuadTree propertyForQuadTree =
         new PropertyForQuadTree(newPropertyIdentificationNumber, shape);
 
-    List<ParcelForQuadTree> parcelsOfProperty = parcelQuadTree.search(shape);
+    List<SpatialDataForQuadTree> parcelsOfProperty = parcelQuadTree.search(shape);
 
     if (parcelsOfProperty.size() > Property.getMaxParcelListSize()) {
       throw new IllegalStateException(
@@ -94,7 +94,7 @@ public class ModelWrapper implements IModel {
     }
 
     List<Parcel> propertyRelatedDataList = new ArrayList<>(parcelsOfProperty.size());
-    for (ParcelForQuadTree parcelForQuadTree : parcelsOfProperty) {
+    for (SpatialDataForQuadTree parcelForQuadTree : parcelsOfProperty) {
       if (propertyQuadTree.search(parcelForQuadTree.getShapeOfData()).size() + 1
           > Parcel.getMaxPropertyListSize()) {
         throw new IllegalStateException(
@@ -135,7 +135,7 @@ public class ModelWrapper implements IModel {
     ParcelForQuadTree parcelForQuadTree =
         new ParcelForQuadTree(newParcelIdentificationNumber, shape);
 
-    List<PropertyForQuadTree> propertiesOfParcel = propertyQuadTree.search(shape);
+    List<SpatialDataForQuadTree> propertiesOfParcel = propertyQuadTree.search(shape);
 
     if (propertiesOfParcel.size() > Parcel.getMaxPropertyListSize()) {
       throw new IllegalStateException(
@@ -145,7 +145,7 @@ public class ModelWrapper implements IModel {
     }
 
     List<Property> parcelRelatedDataList = new ArrayList<>(propertiesOfParcel.size());
-    for (PropertyForQuadTree pPropertyOfParcel : propertiesOfParcel) {
+    for (SpatialDataForQuadTree pPropertyOfParcel : propertiesOfParcel) {
       if (propertyQuadTree.search(pPropertyOfParcel.getShapeOfData()).size() + 1
           > Property.getMaxParcelListSize()) {
         throw new IllegalStateException(
@@ -215,7 +215,7 @@ public class ModelWrapper implements IModel {
     if (!propertyToEdit.getShapeOfData().equals(editedProperty.getShapeOfData())) {
       // need to check if new coordinates can be added
 
-      List<ParcelForQuadTree> parcelsOfEditedProperty =
+      List<SpatialDataForQuadTree> parcelsOfEditedProperty =
           parcelQuadTree.search(editedProperty.getShapeOfData());
 
       if (parcelsOfEditedProperty.size() > Property.getMaxParcelListSize()) {
@@ -225,7 +225,7 @@ public class ModelWrapper implements IModel {
                 editedProperty.getIdentificationNumber(), parcelsOfEditedProperty.size()));
       }
 
-      for (ParcelForQuadTree parcelForQuadTree : parcelsOfEditedProperty) {
+      for (SpatialDataForQuadTree parcelForQuadTree : parcelsOfEditedProperty) {
         if (propertyQuadTree.search(parcelForQuadTree.getShapeOfData()).size() + 1
             > Parcel.getMaxPropertyListSize()) {
           throw new IllegalStateException(
@@ -250,15 +250,15 @@ public class ModelWrapper implements IModel {
           new PropertyForQuadTree(
               editedProperty.getIdentificationNumber(), editedProperty.getShapeOfData()));
 
-      List<ParcelForQuadTree> parcelsOfOriginalProperty =
+      List<SpatialDataForQuadTree> parcelsOfOriginalProperty =
           parcelQuadTree.search(propertyToEdit.getShapeOfData());
 
       // merging lists
       parcelsOfOriginalProperty.removeAll(parcelsOfEditedProperty);
       parcelsOfEditedProperty.addAll(parcelsOfOriginalProperty);
 
-      List<ParcelForQuadTree> mergedParcels = parcelsOfEditedProperty;
-      for (ParcelForQuadTree parcelForQuadTree : mergedParcels) {
+      List<SpatialDataForQuadTree> mergedParcels = parcelsOfEditedProperty;
+      for (SpatialDataForQuadTree parcelForQuadTree : mergedParcels) {
         Parcel parcelOfProperty =
             parcelDynamicHashFile.find(new Parcel(parcelForQuadTree.getIdentificationNumber()));
 
@@ -293,7 +293,7 @@ public class ModelWrapper implements IModel {
     if (!parcelToEdit.getShapeOfData().equals(editedParcel.getShapeOfData())) {
       // need to check if new coordinates can be added
 
-      List<PropertyForQuadTree> propertiesOfEditedParcel =
+      List<SpatialDataForQuadTree> propertiesOfEditedParcel =
           propertyQuadTree.search(editedParcel.getShapeOfData());
 
       if (propertiesOfEditedParcel.size() > Parcel.getMaxPropertyListSize()) {
@@ -303,7 +303,7 @@ public class ModelWrapper implements IModel {
                 editedParcel.getIdentificationNumber(), propertiesOfEditedParcel.size()));
       }
 
-      for (PropertyForQuadTree propertyForQuadTree : propertiesOfEditedParcel) {
+      for (SpatialDataForQuadTree propertyForQuadTree : propertiesOfEditedParcel) {
         if (propertyQuadTree.search(propertyForQuadTree.getShapeOfData()).size() + 1
             > Property.getMaxParcelListSize()) {
           throw new IllegalStateException(
@@ -326,15 +326,15 @@ public class ModelWrapper implements IModel {
           new ParcelForQuadTree(
               editedParcel.getIdentificationNumber(), editedParcel.getShapeOfData()));
 
-      List<PropertyForQuadTree> propertiesOfOrignalParcel =
+      List<SpatialDataForQuadTree> propertiesOfOrignalParcel =
           propertyQuadTree.search(parcelToEdit.getShapeOfData());
 
       // merging lists
       propertiesOfOrignalParcel.removeAll(propertiesOfEditedParcel);
       propertiesOfEditedParcel.addAll(propertiesOfOrignalParcel);
 
-      List<PropertyForQuadTree> mergedProperties = propertiesOfEditedParcel;
-      for (PropertyForQuadTree propertyForQuadTree : mergedProperties) {
+      List<SpatialDataForQuadTree> mergedProperties = propertiesOfEditedParcel;
+      for (SpatialDataForQuadTree propertyForQuadTree : mergedProperties) {
         Property propertyOfParcel =
             propertyDynamicHashFile.find(
                 new Property(propertyForQuadTree.getIdentificationNumber()));

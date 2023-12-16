@@ -1,4 +1,4 @@
-package structure.entity;
+package structure.dynamichashfile.entity;
 
 import java.io.*;
 import structure.dynamichashfile.constant.ElementByteSize;

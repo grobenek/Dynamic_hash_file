@@ -4,8 +4,8 @@ import entity.shape.Rectangle;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import structure.entity.LimitedString;
-import structure.entity.record.Record;
+import structure.dynamichashfile.entity.LimitedString;
+import structure.dynamichashfile.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {
@@ -245,7 +245,7 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
               .append(" ")
               .append("Description: '")
               .append(data.getDescription())
-              .append("' \n")
+              .append("'")
               .append("Shape: ")
               .append(data.getShapeOfData() != null ? getShapeOfData() : "-");
         });

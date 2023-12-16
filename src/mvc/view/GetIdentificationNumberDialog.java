@@ -38,7 +38,7 @@ public class GetIdentificationNumberDialog extends JDialog {
           }
         });
 
-    setSize(200, 400);
+    setSize(400, 200);
     setAutoRequestFocus(true);
     setTitle("Write identification number for operation");
     setLocationRelativeTo(mainWindow.getJFrameObject());
