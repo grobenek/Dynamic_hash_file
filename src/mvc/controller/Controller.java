@@ -149,6 +149,26 @@ public class Controller implements IController {
   }
 
   @Override
+  public String getPropertyOverflowSequenceString() {
+    try {
+      return model.getPropertyOverflowSequenceString();
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+      return "";
+    }
+  }
+
+  @Override
+  public String getParcelOverflowSequenceString() {
+    try {
+      return model.getParcelOverflowSequenceString();
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+      return "";
+    }
+  }
+
+  @Override
   public void update(IObservable observable) {
     if (!(observable instanceof IStructuresWrapperObservable)) {
       return;

@@ -39,4 +39,8 @@ public interface IModel extends AutoCloseable, IStructuresWrapperObservable {
       int overflowFileBlockingFactor);
 
   void generateData(int numberOfProperties, int numberOfParcels);
+
+  String getPropertyOverflowSequenceString();
+
+  String getParcelOverflowSequenceString();
 }

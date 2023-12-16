@@ -503,6 +503,16 @@ public class ModelWrapper implements IModel {
     }
   }
 
+  @Override
+  public String getPropertyOverflowSequenceString() {
+    return propertyDynamicHashFile.sequenceToStringOverflowFile();
+  }
+
+  @Override
+  public String getParcelOverflowSequenceString() {
+    return parcelDynamicHashFile.sequenceToStringOverflowFile();
+  }
+
   private int getNewParcelIdentificationNumber() {
     parcelIdentificationNumberSequence++;
     return parcelIdentificationNumberSequence;

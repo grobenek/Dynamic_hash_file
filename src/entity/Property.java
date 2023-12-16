@@ -129,7 +129,9 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
           + ", shape="
           + getShapeOfData()
           + '}'
-          + ", relatedDataList=[]";
+          + ", relatedDataList=[]"
+          + "\n hash: "
+          + hash().toString();
     }
 
     StringBuilder sb = new StringBuilder();
@@ -160,7 +162,9 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
         + '}'
         + ", relatedDataList=[\n"
         + sb
-        + "]\n";
+        + "]\n"
+        + "hash: "
+        + hash().toString();
   }
 
   public int getRegistrationNumber() {

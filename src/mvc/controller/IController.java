@@ -42,4 +42,8 @@ public interface IController extends IObserver {
   void setView(IMainWindow view);
 
   void generateData(int numberOfProperties, int numberOfParcels);
+
+  String getPropertyOverflowSequenceString();
+
+  String getParcelOverflowSequenceString();
 }

@@ -30,13 +30,15 @@ public class MainWindow extends JFrame implements IMainWindow {
   private JButton deleteParcelButton;
   private JButton saveButton;
   private JButton loadButton;
+  private JButton displayPropertyOverflowFileBlock;
+  private JButton displayParcelOverflowFileBlock;
 
   public MainWindow(IController controller) {
     this.controller = controller;
     setContentPane(mainPanel);
     setTitle("Szathmáry_AUS2 - Semestrálna práca č. 1");
     setDefaultCloseOperation(EXIT_ON_CLOSE);
-    setSize(1200, 900);
+    setSize(1400, 900);
     setLocationRelativeTo(null);
     setVisible(true);
 
@@ -111,6 +113,13 @@ public class MainWindow extends JFrame implements IMainWindow {
           //          loadDataFromFile("parcels.csv", new CsvBuilder());
           //          loadDataFromFile("properties.csv", new CsvBuilder());
         });
+    displayPropertyOverflowFileBlock.addActionListener(e -> {
+      resultText.setText(controller.getPropertyOverflowSequenceString());
+    });
+
+    displayParcelOverflowFileBlock.addActionListener(e -> {
+      resultText.setText(controller.getParcelOverflowSequenceString());
+    });
   }
 
   @Override

@@ -203,8 +203,10 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   @Override
   public BitSet hash() {
-    BitSet bitSet = new BitSet(3);
-    char[] hash = Integer.toBinaryString(identificationNumber % 8).toCharArray();
+    BitSet bitSet = new BitSet(12);
+    char[] hash =
+        Integer.toBinaryString(identificationNumber % 4096)
+            .toCharArray(); // TODO neskor poskusat na lepsej hashovacke
     for (int i = 0; i < hash.length; i++) {
       if (hash[i] == '1') {
         bitSet.set(i);
@@ -230,7 +232,9 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
           + ", shape="
           + shape
           + '}'
-          + ", relatedDataList=[]";
+          + ", relatedDataList=[]"
+          + "\n hash: "
+          + hash().toString();
     }
 
     StringBuilder sb = new StringBuilder();
@@ -258,7 +262,9 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
         + '}'
         + ", relatedDataList=[\n"
         + sb
-        + "]\n";
+        + "]\n"
+        + "hash: "
+        + hash().toString();
   }
 
   @Override
