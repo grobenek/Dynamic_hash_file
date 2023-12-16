@@ -97,12 +97,14 @@ public class TextBuilderTrie<T extends TrieNode> implements IFileBuilder<T> {
       // setting relations
       Stack<InnerTrieNode> stackOfParents = new Stack<>();
       boolean shouldAssignLeftSon = true;
+      InnerTrieNode root = null;
 
       for (int i = 0; i < loadedItems.size(); i++) {
         TrieNode currentNode = loadedItems.get(i);
         if (i == 0) {
           // is root, skip
           stackOfParents.push((InnerTrieNode) currentNode);
+          root = (InnerTrieNode) currentNode;
           continue;
         }
 
@@ -111,6 +113,10 @@ public class TextBuilderTrie<T extends TrieNode> implements IFileBuilder<T> {
         }
 
         InnerTrieNode parent = stackOfParents.peek();
+
+        if (parent.equals(root) && root.getLeftSon() != null) {
+          shouldAssignLeftSon = false;
+        }
 
         currentNode.setParent(parent);
 

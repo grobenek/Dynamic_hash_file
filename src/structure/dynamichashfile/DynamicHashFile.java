@@ -292,8 +292,12 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
-    fileBlockManager.close();
+  public void close() throws IOException {
+    try {
+      fileBlockManager.close();
+    } catch (IOException e) {
+      throw new IOException(e);
+    }
   }
 
   public List<TrieNode> getTrieNodes() {

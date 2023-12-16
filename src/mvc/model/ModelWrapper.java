@@ -544,13 +544,6 @@ public class ModelWrapper implements IModel {
     trieIOManager.saveToFile("trieProperties.sz", propertyDynamicHashFile.getTrieNodes());
     trieIOManager.saveToFile("trieParcels.sz", parcelDynamicHashFile.getTrieNodes());
 
-    //    // saving depth of trie
-    //    IOManager<Integer> trieDepthManager = new IOManager<>(new IntegerBuilder());
-    //    trieDepthManager.saveToFile(
-    //        "triePropertiesDepth.sz", List.of(propertyDynamicHashFile.getTrieMaxDepth()));
-    //    trieDepthManager.saveToFile(
-    //        "trieParcelsDepth.sz", List.of(parcelDynamicHashFile.getTrieMaxDepth()));
-
     // saving dynamic files info
     IOManager<DynamicHashFileInfo> dynamicHashFileIOManager =
         new IOManager<>(new DynamicHashFileInfoBuilder());
@@ -594,16 +587,6 @@ public class ModelWrapper implements IModel {
     List<TrieNode> parcelTrieNodes = trieNodeBuilder.getLoadedData();
     trieNodeBuilder.clearLoadedData();
 
-    //    // loading depth of trie
-    //    IFileBuilder<Integer> integerBuilder = new IntegerBuilder();
-    //    IOManager<Integer> trieDepthManager = new IOManager<>(integerBuilder);
-    //
-    //    trieDepthManager.loadFromFile("triePropertiesDepth.sz");
-    //    int depthOfPropertyTrie = integerBuilder.getLoadedData().get(0);
-    //
-    //    trieDepthManager.loadFromFile("trieParcelsDepth.sz");
-    //    int depthOfParcelTrie = integerBuilder.getLoadedData().get(0);
-
     // loading dynamic files info
     IFileBuilder<DynamicHashFileInfo> fileInfoBuilder = new DynamicHashFileInfoBuilder();
     IOManager<DynamicHashFileInfo> dynamicHashFileIOManager = new IOManager<>(fileInfoBuilder);
@@ -616,18 +599,8 @@ public class ModelWrapper implements IModel {
     DynamicHashFileInfo parcelFileInfo = fileInfoBuilder.getLoadedData().get(0);
     fileInfoBuilder.clearLoadedData();
 
-    //    propertyDynamicHashFile.setTrie((InnerTrieNode) propertyTrieNodes.get(0));
-    //    parcelDynamicHashFile.setTrie((InnerTrieNode) parcelTrieNodes.get(0));
-    //
-    //
-    // propertyDynamicHashFile.setMainFileBlockingFactor(propertyFileInfo.blockingFactorOfMainFile());
-    //    propertyDynamicHashFile.setOverflowFileBlockingFactor(
-    //        propertyFileInfo.blockingFactorOfOverflowFile());
-    //
-    //
-    // parcelDynamicHashFile.setMainFileBlockingFactor(parcelFileInfo.blockingFactorOfMainFile());
-    //    parcelDynamicHashFile.setOverflowFileBlockingFactor(
-    //        parcelFileInfo.blockingFactorOfOverflowFile());
+    propertyDynamicHashFile.close();
+    parcelDynamicHashFile.close();
 
     propertyDynamicHashFile =
         (DynamicHashFile<Property>)
