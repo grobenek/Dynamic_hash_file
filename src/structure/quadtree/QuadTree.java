@@ -1,12 +1,12 @@
 package structure.quadtree;
 
-import entity.SpatialData;
 import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
 import java.util.*;
 
-public class QuadTree<T extends SpatialData<?>> {
+public class QuadTree<T extends IShapeData> {
+  private final List<Quadrant> last2WorstQuadrants;
   private int height;
   private Rectangle shape;
   private QuadNode<T> root;
@@ -16,7 +16,6 @@ public class QuadTree<T extends SpatialData<?>> {
   private int itemsInSouthWest;
   private int itemsInSouthEast;
   private int itemsInRoot;
-  private List<Quadrant> last2WorstQuadrants;
 
   public QuadTree(int maxHeight, Rectangle shape) {
     this.height = maxHeight;
@@ -37,6 +36,48 @@ public class QuadTree<T extends SpatialData<?>> {
 
   public int getHeight() {
     return height;
+  }
+
+  /**
+   * Reinsert all items that have height greater than given height and set new height of QuadTree
+   *
+   * @param newHeight new height for QuadTree
+   */
+  public void setHeight(int newHeight) {
+    if (newHeight <= 0) {
+      throw new IllegalArgumentException("New height cannot be <= 0!");
+    }
+
+    if (height <= newHeight) {
+      height = newHeight;
+      return;
+    }
+
+    height = newHeight;
+
+    Stack<QuadNode<T>> stackOfNodesToProcess = new Stack<>();
+    Stack<T> itemsToReinsert = new Stack<>();
+
+    stackOfNodesToProcess.push(root);
+
+    while (!stackOfNodesToProcess.empty()) {
+      QuadNode<T> currentNode = stackOfNodesToProcess.pop();
+
+      if (currentNode.getHeight() > newHeight) {
+        itemsToReinsert.addAll(currentNode.getItems());
+        currentNode.removeAllItems();
+      }
+
+      for (QuadNode<T> child : currentNode.getChildren()) {
+        if (child != null) {
+          stackOfNodesToProcess.push(child);
+        }
+      }
+    }
+
+    while (!itemsToReinsert.empty()) {
+      insert(itemsToReinsert.pop());
+    }
   }
 
   public void insert(T data) {
@@ -276,7 +317,8 @@ public class QuadTree<T extends SpatialData<?>> {
     QuadNode<T> nodeOfChild = findFreeParentForDataAndAddDataToNewChild(root, data, false);
 
     if (nodeOfChild == null) {
-      throw new IllegalStateException(String.format("Data %s not found in structure.quadtree", data));
+      throw new IllegalStateException(
+          String.format("Data %s not found in structure.quadtree", data));
     }
 
     Quadrant quadrantOfDataInRoot = root.getQuadrantOfShape(data, false);
@@ -374,48 +416,6 @@ public class QuadTree<T extends SpatialData<?>> {
         && secondPointOfData.widthCoordinate() <= thisSecondPoint.widthCoordinate()
         && firstPointOfData.lengthCoordinate() >= thisFirstPoint.lengthCoordinate()
         && secondPointOfData.lengthCoordinate() <= thisSecondPoint.lengthCoordinate());
-  }
-
-  /**
-   * Reinsert all items that have height greater than given height and set new height of QuadTree
-   *
-   * @param newHeight new height for QuadTree
-   */
-  public void setHeight(int newHeight) {
-    if (newHeight <= 0) {
-      throw new IllegalArgumentException("New height cannot be <= 0!");
-    }
-
-    if (height <= newHeight) {
-      height = newHeight;
-      return;
-    }
-
-    height = newHeight;
-
-    Stack<QuadNode<T>> stackOfNodesToProcess = new Stack<>();
-    Stack<T> itemsToReinsert = new Stack<>();
-
-    stackOfNodesToProcess.push(root);
-
-    while (!stackOfNodesToProcess.empty()) {
-      QuadNode<T> currentNode = stackOfNodesToProcess.pop();
-
-      if (currentNode.getHeight() > newHeight) {
-        itemsToReinsert.addAll(currentNode.getItems());
-        currentNode.removeAllItems();
-      }
-
-      for (QuadNode<T> child : currentNode.getChildren()) {
-        if (child != null) {
-          stackOfNodesToProcess.push(child);
-        }
-      }
-    }
-
-    while (!itemsToReinsert.empty()) {
-      insert(itemsToReinsert.pop());
-    }
   }
 
   /**

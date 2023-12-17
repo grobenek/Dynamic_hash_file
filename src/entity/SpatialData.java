@@ -1,35 +1,143 @@
 package entity;
 
 import entity.shape.Rectangle;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
-import java.util.Objects;
-import structure.dynamichashfile.IConvertableToBytes;
-import structure.dynamichashfile.Record;
+import structure.dynamichashfile.entity.LimitedString;
+import structure.dynamichashfile.entity.record.Record;
 import structure.quadtree.IShapeData;
 
-public abstract class SpatialData<T extends IShapeData> implements IShapeData, IConvertableToBytes {
+public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {
+  private int maximumRelatedDataListSize;
+  private int maximumDescriptionSize;
   private int identificationNumber;
-  private String description;
-  private List<SpatialData> relatedDataList;
+  private LimitedString description;
+  private List<T> relatedDataList;
   private Rectangle shape;
 
-  public SpatialData(int identificationNumber, String description, Rectangle shape) {
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      Rectangle shape,
+      int maximumRelatedDataListSize,
+      List<T> relatedDataList) {
+
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.shape = shape;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    if (relatedDataList.size() > maximumRelatedDataListSize) {
+      throw new IllegalArgumentException(
+          "Cannot set related data list with "
+              + relatedDataList.size()
+              + "! Exceeded maximum list size of "
+              + maximumRelatedDataListSize
+              + "!");
+    }
+
+    this.relatedDataList = relatedDataList;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      Rectangle shape,
+      int maximumRelatedDataListSize,
+      List<T> relatedDataList) {
+
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
     this.identificationNumber = identificationNumber;
     this.description = description;
     this.shape = shape;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    if (relatedDataList.size() > maximumRelatedDataListSize) {
+      throw new IllegalArgumentException(
+          "Cannot set related data list with "
+              + relatedDataList.size()
+              + "! Exceeded maximum list size of "
+              + maximumRelatedDataListSize
+              + "!");
+    }
+
+    this.relatedDataList = relatedDataList;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      Rectangle shape,
+      int maximumRelatedDataListSize) {
+
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.shape = shape;
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.maximumDescriptionSize = maximumDescriptionSize;
 
     this.relatedDataList = new ArrayList<>();
   }
 
-  public SpatialData(int identificationNumber, String description) {
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      Rectangle shape,
+      int maximumRelatedDataListSize) {
     this.identificationNumber = identificationNumber;
     this.description = description;
+    this.shape = shape;
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+    this.maximumDescriptionSize = maximumDescriptionSize;
 
     this.relatedDataList = new ArrayList<>();
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      String description,
+      int maximumRelatedDataListSize) {
+    this.identificationNumber = identificationNumber;
+    this.description = new LimitedString(maximumDescriptionSize, description);
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    this.relatedDataList = new ArrayList<>();
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
+  public SpatialData(
+      int identificationNumber,
+      int maximumDescriptionSize,
+      LimitedString description,
+      int maximumRelatedDataListSize) {
+    this.identificationNumber = identificationNumber;
+    this.description = description;
+    this.maximumDescriptionSize = maximumDescriptionSize;
+
+    this.relatedDataList = new ArrayList<>();
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
+  /** Default constructor used to create dummy instance for loading from byteArray */
+  public SpatialData() {}
+
+  public SpatialData(int identificationNumber) {
+    this.identificationNumber = identificationNumber;
+  }
+
+  public void setMaximumRelatedDataListSize(int maximumRelatedDataListSize) {
+    this.maximumRelatedDataListSize = maximumRelatedDataListSize;
+  }
+
+  public void setMaximumDescriptionSize(int maximumDescriptionSize) {
+    this.maximumDescriptionSize = maximumDescriptionSize;
   }
 
   public int getIdentificationNumber() {
@@ -40,27 +148,35 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
     this.identificationNumber = identificationNumber;
   }
 
-  public String getDescription() {
+  public LimitedString getDescription() {
     return description;
   }
 
-  public void setDescription(String description) {
+  public void setDescription(LimitedString description) {
     this.description = description;
   }
 
-  public List<SpatialData> getRelatedDataList() {
+  public void setDescription(String description) {
+    this.description = new LimitedString(maximumDescriptionSize, description);
+  }
+
+  public List<T> getRelatedDataList() {
     return relatedDataList;
   }
 
-  public void setRelatedDataList(List<SpatialData> relatedDataList) {
+  public void setRelatedDataList(List<T> relatedDataList) {
     this.relatedDataList = relatedDataList;
   }
 
-  public void addRelatedData(SpatialData data) {
+  public void addRelatedData(T data) {
+    if (relatedDataList.size() >= maximumRelatedDataListSize) {
+      throw new IllegalStateException("Cannot add more relatedData to SpatialData: " + this);
+    }
+
     relatedDataList.add(data);
   }
 
-  public void removeRelatedData(SpatialData data) {
+  public void removeRelatedData(T data) {
     relatedDataList.remove(data);
   }
 
@@ -73,17 +189,51 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
     return shape;
   }
 
+  @Override
+  public BitSet hash() {
+    BitSet bitSet = new BitSet(12);
+    char[] hash = Integer.toBinaryString(identificationNumber % 4096).toCharArray();
+    for (int i = 0; i < hash.length; i++) {
+      if (hash[i] == '1') {
+        bitSet.set(i);
+      }
+    }
+    return bitSet;
+  }
+
+  @Override
+  public int getMaxHashSize() {
+    return 12;
+  }
+
   public String toString(String className) {
+    if (relatedDataList == null) {
+      return className
+          + "{"
+          + "identificationNumber="
+          + identificationNumber
+          + ", description='"
+          + description
+          + '\''
+          + ", shape="
+          + shape
+          + '}'
+          + ", relatedDataList=[]"
+          + "\n hash: "
+          + hash().toString();
+    }
+
     StringBuilder sb = new StringBuilder();
     relatedDataList.forEach(
         data -> {
           sb.append("identificationNumber=")
-              .append(data.identificationNumber)
+              .append(data.getIdentificationNumber())
               .append(" ")
-              .append("Description: ")
+              .append("Description: '")
               .append(data.getDescription())
-              .append(" ")
-              .append(data.getShapeOfData());
+              .append("'")
+              .append("Shape: ")
+              .append(data.getShapeOfData() != null ? getShapeOfData() : "-");
         });
 
     return className
@@ -96,50 +246,25 @@ public abstract class SpatialData<T extends IShapeData> implements IShapeData, I
         + ", shape="
         + shape
         + '}'
-        + ", relatedDataList=\n"
+        + ", relatedDataList=[\n"
         + sb
-        + "\n";
+        + "]\n"
+        + "hash: "
+        + hash().toString();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SpatialData<?>)) {
+    if (!(obj instanceof SpatialData<?> castedObj)) {
       return false;
     }
-    SpatialData<?> castedObj = (SpatialData<?>) obj;
 
-    return castedObj.getDescription().equals(description)
-        && castedObj.identificationNumber == identificationNumber
-        && ((castedObj.relatedDataList == null && relatedDataList == null)
-            || (castedObj.relatedDataList != null
-                && castedObj.relatedDataList.equals(relatedDataList)))
-        && ((castedObj.shape == null && shape == null)
-            || (castedObj.shape != null && castedObj.shape.equals(shape)));
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(identificationNumber, description, relatedDataList, shape);
-  }
-
-  @Override
-  public byte[] toByteArray() {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    DataOutputStream outputStream = new DataOutputStream(byteArrayOutputStream);
-
-    try {
-      outputStream.writeInt(identificationNumber);
-      outputStream.writeBytes(description);
-
-      return byteArrayOutputStream.toByteArray();
-
-    } catch (IOException e) {
-      throw new IllegalStateException("Error during conversion to byte array.");
-    }
-  }
-
-  @Override
-  public Record fromByteArray() {
-    return null;
+    //    return castedObj.getDescription().equals(description)
+    //        && castedObj.identificationNumber == identificationNumber
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    return identificationNumber == castedObj.getIdentificationNumber();
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }
 }
