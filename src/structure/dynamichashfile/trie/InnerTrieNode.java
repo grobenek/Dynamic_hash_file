@@ -4,11 +4,7 @@ public class InnerTrieNode extends TrieNode {
   private TrieNode leftSon;
   private TrieNode rightSon;
 
-  public InnerTrieNode(TrieNode parent, TrieNode leftSon, TrieNode rightSon, int maxDepth) {
-    super(parent, maxDepth);
-    this.leftSon = leftSon;
-    this.rightSon = rightSon;
-  }
+  public InnerTrieNode() {}
 
   public InnerTrieNode(TrieNode parent, int maxDepth) {
     super(parent, maxDepth);

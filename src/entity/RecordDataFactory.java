@@ -5,7 +5,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
-import structure.entity.record.Record;
+import structure.dynamichashfile.entity.record.Record;
 
 public class RecordDataFactory {
   public static Record fromByteArray(byte[] byteArray) {

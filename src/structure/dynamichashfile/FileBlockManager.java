@@ -4,19 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import structure.dynamichashfile.constant.ElementByteSize;
+import structure.dynamichashfile.entity.Block;
+import structure.dynamichashfile.entity.record.Record;
+import structure.dynamichashfile.entity.record.RecordFactory;
 import structure.dynamichashfile.trie.LeafTrieNode;
-import structure.entity.Block;
-import structure.entity.record.Record;
-import structure.entity.record.RecordFactory;
 
-public class FileBlockManager<T extends Record> implements AutoCloseable {
+class FileBlockManager<T extends Record> implements AutoCloseable {
   private static final int INVALID_ADDRESS = Block.getInvalidAddress();
+  private final String mainFilePath;
+  private final String ovetflowFilePath;
   private final RandomAccessFile mainFileStream;
   private final RandomAccessFile overflowFileStream;
-  private final int mainFileBlockingFactor;
-  private final int overflowFileBlockingFactor;
   private final Class<T> tClass;
   private final T tDummyInstance;
+  private int mainFileBlockingFactor;
+  private int overflowFileBlockingFactor;
   private long firstFreeBlockAddressFromMainFile;
   private long firstFreeBlockAddressFromOverflowFile;
 
@@ -30,9 +32,8 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     File mainFile = new File(mainFilePath);
     File overflowFile = new File(overflowFilePath);
 
-    resetFile(mainFile);
-    resetFile(overflowFile);
-
+    this.mainFilePath = mainFilePath;
+    this.ovetflowFilePath = overflowFilePath;
     this.mainFileStream = new RandomAccessFile(mainFile, "rw");
     this.overflowFileStream = new RandomAccessFile(overflowFile, "rw");
     this.mainFileBlockingFactor = mainBlockingFactor;
@@ -44,16 +45,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
   }
 
-  private void resetFile(File file) {
-    try {
-      if (file.exists()) {
-        file.delete();
-      }
-      file.createNewFile();
-    } catch (IOException e) {
-      throw new RuntimeException(
-          "Error occured when resetting file! Message: " + e.getLocalizedMessage());
-    }
+  public String getMainFilePath() {
+    return mainFilePath;
+  }
+
+  public String getOvetflowFilePath() {
+    return ovetflowFilePath;
   }
 
   public Class<T> getTClass() {
@@ -105,12 +102,9 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     if (isMainBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
       mainFileStream.setLength(addressOfData);
-      //      mainFileStream.setLength( //TODO toto spravit, ale asi niekde v trie, lebo ked to
-      // vymazem a trie o tom nevie, tak pristupujem k datam mimo file - ale mozno to staci takto
-      //              getAddressLastEmptyBlockFromEndOfFile(addressOfData, blockToDelete, true));
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInOverflowBlock());
+      nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInMainBlock());
       blockToDelete.clear();
       writeMainBlock(blockToDelete, addressOfData);
 
@@ -118,27 +112,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     }
   }
 
-  private long getAddressLastEmptyBlockFromEndOfFile( // TODO toto hore
-      long addressOfPCurrentBlock, Block<T> pCurrentBlock, boolean isInMainFile) {
-    long addressOfCurrentBlock = addressOfPCurrentBlock;
-    Block<T> currentBlock = pCurrentBlock;
-
-    while (currentBlock.getAddressOfOverflowBlock() == INVALID_ADDRESS && currentBlock.isEmpty()) {
-      addressOfCurrentBlock =
-          addressOfCurrentBlock - (currentBlock.getByteSize()) < 0
-              ? 0
-              : addressOfCurrentBlock - ((currentBlock.getByteSize()));
-      currentBlock =
-          isInMainFile
-              ? getMainBlock(addressOfCurrentBlock)
-              : getOverflowBlock(addressOfCurrentBlock);
-    }
-
-    return addressOfCurrentBlock;
-  }
-
-  private boolean isMainBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
-      throws IOException {
+  public boolean isMainBlockOnTheEndOfFile(long address, Block<T> blockToCheck) throws IOException {
     return address + blockToCheck.getByteSize() == mainFileStream.length();
   }
 
@@ -177,7 +151,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
                 + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
       Block<T> block = getMainBlock(i);
 
-      sb.append(i).append(" ").append(block);
+      sb.append("---------------------")
+          .append("\n")
+          .append(i)
+          .append(" ")
+          .append(block)
+          .append("\n");
     }
 
     return sb.toString();
@@ -191,6 +170,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
 
     Block<T> firstFreeBlock = getMainBlock(firstFreeBlockAddressFromMainFile);
     firstFreeBlock.setPreviousFreeBlockAddress(addressOfData);
+    writeMainBlock(firstFreeBlock, firstFreeBlockAddressFromMainFile);
     blockToDelete.setNextFreeBlockAddress(firstFreeBlockAddressFromMainFile);
     firstFreeBlockAddressFromMainFile = addressOfData;
 
@@ -281,21 +261,21 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     }
   }
 
-  public void deleteOverflowBlock(LeafTrieNode nodeOfData) throws IOException {
-    long addressOfData = nodeOfData.getAddressOfData();
-    Block<T> blockToDelete = getOverflowBlock(addressOfData);
+  public void deleteOverflowBlock(
+      LeafTrieNode nodeOfData, Block<T> overflowBlockToDelete, long addressOfOverflowBlock)
+      throws IOException {
 
-    if (isOverflowBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
+    if (isOverflowBlockOnTheEndOfFile(addressOfOverflowBlock, overflowBlockToDelete)) {
       // block is on the end of a file - set new length of file
-      overflowFileStream.setLength(
-          addressOfData); // TODO treba pozriet aj predchodcu a zmazat ak tak
+      overflowFileStream.setLength(addressOfOverflowBlock);
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInOverflowBlock());
-      blockToDelete.clear();
-      writeOverflowBlock(blockToDelete, addressOfData);
+      nodeOfData.removeDataInReserveBlock(overflowBlockToDelete.getValidRecordsCount());
+      nodeOfData.decreaseOverflowBlocksCount();
+      overflowBlockToDelete.clear();
+      writeOverflowBlock(overflowBlockToDelete, addressOfOverflowBlock);
 
-      setOverflowBlockAsFirstFreeBlock(addressOfData, blockToDelete);
+      setOverflowBlockAsFirstFreeBlock(addressOfOverflowBlock, overflowBlockToDelete);
     }
   }
 
@@ -328,7 +308,7 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     writeOverflowBlock(blockToDelete, addressOfData);
   }
 
-  private boolean isOverflowBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
+  public boolean isOverflowBlockOnTheEndOfFile(long address, Block<T> blockToCheck)
       throws IOException {
     return address + blockToCheck.getByteSize() == overflowFileStream.length();
   }
@@ -411,7 +391,12 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
                 + (ElementByteSize.intByteSize() + (ElementByteSize.longByteSize() * 5L)))) {
       Block<T> block = getOverflowBlock(i);
 
-      sb.append(i).append(" ").append(block);
+      sb.append("---------------------------------------")
+          .append("\n")
+          .append(i)
+          .append(" ")
+          .append(block)
+          .append("\n");
     }
 
     return sb.toString();
@@ -423,4 +408,5 @@ public class FileBlockManager<T extends Record> implements AutoCloseable {
     mainFileStream.close();
     overflowFileStream.close();
   }
+
 }

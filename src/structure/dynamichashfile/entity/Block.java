@@ -1,11 +1,11 @@
-package structure.entity;
+package structure.dynamichashfile.entity;
 
 import entity.RecordDataFactory;
 import java.io.*;
 import java.util.Arrays;
 import structure.dynamichashfile.constant.ElementByteSize;
-import structure.entity.record.Record;
-import structure.entity.record.RecordFactory;
+import structure.dynamichashfile.entity.record.Record;
+import structure.dynamichashfile.entity.record.RecordFactory;
 
 public class Block<T extends Record> implements IConvertableToBytes {
   private static final int INVALID_ADDRESS = -1;
@@ -80,10 +80,6 @@ public class Block<T extends Record> implements IConvertableToBytes {
   public Block<T> setAddressOfOverflowBlock(long addressOfOverflowBlock) {
     this.addressOfOverflowBlock = addressOfOverflowBlock;
     return this;
-  }
-
-  public long getPreviousFreeBlockAddress() {
-    return previousFreeBlockAddress;
   }
 
   public void setPreviousFreeBlockAddress(long address) {
@@ -254,14 +250,18 @@ public class Block<T extends Record> implements IConvertableToBytes {
         .append(nextOverflowBlockAddress)
         .append("\n Address of previous overflowBlock: ")
         .append(previousOverflowBlockAddress)
+        .append("\n Address of next free block: ")
+        .append(nextFreeBlockAddress)
+        .append("\n Address of previous free block: ")
+        .append(previousFreeBlockAddress)
         .append("\n valid records: ")
         .append(validRecordsCount)
         .append("\n")
-        .append("Records: ");
-    //    for (int i = 0; i < validRecordsCount; i++) {
-    //      sb.append(records[i].toString()).append("\n");
-    //    }
-    sb.append(";\n");
+        .append("Records: [\n");
+    for (int i = 0; i < validRecordsCount; i++) {
+      sb.append("\t").append(records[i].toString()).append("\n");
+    }
+    sb.append("];\n");
 
     return sb.toString();
   }

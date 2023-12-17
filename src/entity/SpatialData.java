@@ -4,8 +4,8 @@ import entity.shape.Rectangle;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import structure.entity.LimitedString;
-import structure.entity.record.Record;
+import structure.dynamichashfile.entity.LimitedString;
+import structure.dynamichashfile.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public abstract class SpatialData<T extends SpatialData<?>> extends Record implements IShapeData {
@@ -128,16 +128,12 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
   /** Default constructor used to create dummy instance for loading from byteArray */
   public SpatialData() {}
 
-  public int getMaximumRelatedDataListSize() {
-    return maximumRelatedDataListSize;
+  public SpatialData(int identificationNumber) {
+    this.identificationNumber = identificationNumber;
   }
 
   public void setMaximumRelatedDataListSize(int maximumRelatedDataListSize) {
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
-  }
-
-  public int getMaximumDescriptionSize() {
-    return maximumDescriptionSize;
   }
 
   public void setMaximumDescriptionSize(int maximumDescriptionSize) {
@@ -158,6 +154,10 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   public void setDescription(LimitedString description) {
     this.description = description;
+  }
+
+  public void setDescription(String description) {
+    this.description = new LimitedString(maximumDescriptionSize, description);
   }
 
   public List<T> getRelatedDataList() {
@@ -189,14 +189,10 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     return shape;
   }
 
-  public int getMaxRelatedDataListSize() {
-    return maximumRelatedDataListSize;
-  }
-
   @Override
   public BitSet hash() {
-    BitSet bitSet = new BitSet(3);
-    char[] hash = Integer.toBinaryString(identificationNumber % 8).toCharArray();
+    BitSet bitSet = new BitSet(12);
+    char[] hash = Integer.toBinaryString(identificationNumber % 4096).toCharArray();
     for (int i = 0; i < hash.length; i++) {
       if (hash[i] == '1') {
         bitSet.set(i);
@@ -205,17 +201,39 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     return bitSet;
   }
 
+  @Override
+  public int getMaxHashSize() {
+    return 12;
+  }
+
   public String toString(String className) {
+    if (relatedDataList == null) {
+      return className
+          + "{"
+          + "identificationNumber="
+          + identificationNumber
+          + ", description='"
+          + description
+          + '\''
+          + ", shape="
+          + shape
+          + '}'
+          + ", relatedDataList=[]"
+          + "\n hash: "
+          + hash().toString();
+    }
+
     StringBuilder sb = new StringBuilder();
     relatedDataList.forEach(
         data -> {
           sb.append("identificationNumber=")
               .append(data.getIdentificationNumber())
               .append(" ")
-              .append("Description: ")
+              .append("Description: '")
               .append(data.getDescription())
-              .append(" ")
-              .append(data.getShapeOfData());
+              .append("'")
+              .append("Shape: ")
+              .append(data.getShapeOfData() != null ? getShapeOfData() : "-");
         });
 
     return className
@@ -230,19 +248,23 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
         + '}'
         + ", relatedDataList=[\n"
         + sb
-        + "]\n";
+        + "]\n"
+        + "hash: "
+        + hash().toString();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SpatialData)) {
+    if (!(obj instanceof SpatialData<?> castedObj)) {
       return false;
     }
-    SpatialData<?> castedObj = (SpatialData<?>) obj;
 
-    return castedObj.getDescription().equals(description)
-        && castedObj.identificationNumber == identificationNumber
-        && ((castedObj.shape == null && shape == null)
-            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    //    return castedObj.getDescription().equals(description)
+    //        && castedObj.identificationNumber == identificationNumber
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
+    return identificationNumber == castedObj.getIdentificationNumber();
+    //        && ((castedObj.shape == null && shape == null)
+    //            || (castedObj.shape != null && castedObj.shape.equals(shape)));
   }
 }

@@ -6,8 +6,8 @@ import entity.shape.Rectangle;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import structure.entity.LimitedString;
-import structure.entity.record.Record;
+import structure.dynamichashfile.entity.LimitedString;
+import structure.dynamichashfile.entity.record.Record;
 import structure.quadtree.IShapeData;
 
 public class Property extends SpatialData<Parcel> implements IShapeData {
@@ -98,6 +98,10 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
 
   public Property() {}
 
+  public Property(int propertyIdentificationNumber) {
+    super(propertyIdentificationNumber);
+  }
+
   public static int getMaxParcelListSize() {
     return MAX_RELATED_PARCEL_LIST_SIZE;
   }
@@ -112,7 +116,55 @@ public class Property extends SpatialData<Parcel> implements IShapeData {
 
   @Override
   public String toString() {
-    return super.toString("Property");
+    if (getRelatedDataList() == null) {
+      return "Property"
+          + "{"
+          + "identificationNumber="
+          + getIdentificationNumber()
+          + ", registrationNumber="
+          + registrationNumber
+          + ", description='"
+          + getDescription()
+          + '\''
+          + ", shape="
+          + getShapeOfData()
+          + '}'
+          + ", relatedDataList=[]"
+          + "\n hash: "
+          + hash().toString();
+    }
+
+    StringBuilder sb = new StringBuilder();
+    getRelatedDataList()
+        .forEach(
+            data -> {
+              sb.append("identificationNumber=")
+                  .append(data.getIdentificationNumber())
+                  .append(" ")
+                  .append("Description: '")
+                  .append(data.getDescription())
+                  .append("' ")
+                  .append("Shape: ")
+                  .append(data.getShapeOfData() != null ? getShapeOfData() : "-");
+            });
+
+    return "Property"
+        + "{"
+        + "identificationNumber="
+        + getIdentificationNumber()
+        + ", registrationNumber="
+        + registrationNumber
+        + ", description='"
+        + getDescription()
+        + '\''
+        + ", shape="
+        + getShapeOfData()
+        + '}'
+        + ", relatedDataList=[\n"
+        + sb
+        + "]\n"
+        + "hash: "
+        + hash().toString();
   }
 
   public int getRegistrationNumber() {
