@@ -45,18 +45,6 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     this.tDummyInstance = RecordFactory.getDummyInstance(tClass);
   }
 
-  private void resetFile(File file) {
-    try {
-      if (file.exists()) {
-        file.delete();
-      }
-      file.createNewFile();
-    } catch (IOException e) {
-      throw new RuntimeException(
-          "Error occured when resetting file! Message: " + e.getLocalizedMessage());
-    }
-  }
-
   public String getMainFilePath() {
     return mainFilePath;
   }
@@ -73,16 +61,8 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     return mainFileBlockingFactor;
   }
 
-  public void setMainFileBlockingFactor(int mainFileBlockingFactor) {
-    this.mainFileBlockingFactor = mainFileBlockingFactor;
-  }
-
   public int getOverflowFileBlockingFactor() {
     return overflowFileBlockingFactor;
-  }
-
-  public void setOverflowFileBlockingFactor(int overflowFileBlockingFactor) {
-    this.overflowFileBlockingFactor = overflowFileBlockingFactor;
   }
 
   public Block<T> getMainBlock(long address) {
@@ -429,11 +409,4 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     overflowFileStream.close();
   }
 
-  public long getFirstFreeBlockAddressFromMainFile() {
-    return firstFreeBlockAddressFromMainFile;
-  }
-
-  public long getFirstFreeBlockAddressFromOverflowFile() {
-    return firstFreeBlockAddressFromOverflowFile;
-  }
 }

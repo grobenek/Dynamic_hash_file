@@ -132,16 +132,8 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
     this.identificationNumber = identificationNumber;
   }
 
-  public int getMaximumRelatedDataListSize() {
-    return maximumRelatedDataListSize;
-  }
-
   public void setMaximumRelatedDataListSize(int maximumRelatedDataListSize) {
     this.maximumRelatedDataListSize = maximumRelatedDataListSize;
-  }
-
-  public int getMaximumDescriptionSize() {
-    return maximumDescriptionSize;
   }
 
   public void setMaximumDescriptionSize(int maximumDescriptionSize) {
@@ -195,10 +187,6 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
   @Override
   public Rectangle getShapeOfData() {
     return shape;
-  }
-
-  public int getMaxRelatedDataListSize() {
-    return maximumRelatedDataListSize;
   }
 
   @Override

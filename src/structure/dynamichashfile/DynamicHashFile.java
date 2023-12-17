@@ -555,10 +555,6 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
     return nodes;
   }
 
-  public int getTrieMaxDepth() {
-    return trie.maxDepth;
-  }
-
   public DynamicHashFileInfo getInfo() {
     return new DynamicHashFileInfo(
         fileBlockManager.getMainFileBlockingFactor(),
@@ -566,20 +562,6 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         fileBlockManager.getTClass(),
         fileBlockManager.getMainFilePath(),
         fileBlockManager.getOvetflowFilePath());
-  }
-
-  public void setTrie(InnerTrieNode root) {
-    trie =
-        new Trie(
-            root, RecordFactory.getDummyInstance(fileBlockManager.getTClass()).getMaxHashSize());
-  }
-
-  public void setMainFileBlockingFactor(int mainFileBlockingFactor) {
-    fileBlockManager.setMainFileBlockingFactor(mainFileBlockingFactor);
-  }
-
-  public void setOverflowFileBlockingFactor(int overflowFileBlockingFactor) {
-    fileBlockManager.setOverflowFileBlockingFactor(overflowFileBlockingFactor);
   }
 
   private class Trie {
@@ -950,8 +932,5 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           && rightChildOverflowBlock;
     }
 
-    public int getMaxDepth() {
-      return maxDepth;
-    }
   }
 }

@@ -82,10 +82,6 @@ public class Block<T extends Record> implements IConvertableToBytes {
     return this;
   }
 
-  public long getPreviousFreeBlockAddress() {
-    return previousFreeBlockAddress;
-  }
-
   public void setPreviousFreeBlockAddress(long address) {
     previousFreeBlockAddress = address;
   }

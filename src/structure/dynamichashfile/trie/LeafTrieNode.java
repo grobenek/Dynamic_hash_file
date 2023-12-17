@@ -103,7 +103,4 @@ public class LeafTrieNode extends TrieNode {
     return dataSizeInReserveBlocks != 0;
   }
 
-  public void addDataInReserveBlocks(int count) {
-    dataSizeInReserveBlocks += count;
-  }
 }
