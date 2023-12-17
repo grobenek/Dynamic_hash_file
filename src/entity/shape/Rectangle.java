@@ -87,10 +87,9 @@ public class Rectangle implements IShapeData, IConvertableToBytes {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof Rectangle)) {
+    if (!(obj instanceof Rectangle castedObj)) {
       return false;
     }
-    Rectangle castedObj = (Rectangle) obj;
 
     return (castedObj.getFirstPoint().equals(firstPoint)
         && castedObj.getSecondPoint().equals(secondPoint));
@@ -158,7 +157,7 @@ public class Rectangle implements IShapeData, IConvertableToBytes {
   @Override
   public void fromByteArray(byte[] byteArray) {
     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArray);
-        DataInputStream inputStream = new DataInputStream(byteArrayInputStream); ) {
+        DataInputStream inputStream = new DataInputStream(byteArrayInputStream)) {
 
       GpsCoordinates firstPoint = extractPointFromByteArray(inputStream);
 

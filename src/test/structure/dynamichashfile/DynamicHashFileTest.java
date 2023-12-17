@@ -6,7 +6,6 @@ import entity.Parcel;
 import entity.shape.Direction;
 import entity.shape.GpsCoordinates;
 import entity.shape.Rectangle;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 class DynamicHashFileTest {
   private static final int NUMBER_OF_REPETETIONS = 100;
-  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 5000;
+  private static final int NUMBER_OF_ACTIONS_IN_REPETETION = 10000;
 
   @Test
   void testAllOperations() {
@@ -35,28 +34,27 @@ class DynamicHashFileTest {
       if (mainFile.exists()) {
         mainFile.delete();
       }
-        try {
-            mainFile.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+      try {
+        mainFile.createNewFile();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-        if (overflowFile.exists()) {
+      if (overflowFile.exists()) {
         overflowFile.delete();
       }
-        try {
-            overflowFile.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+      try {
+        overflowFile.createNewFile();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-        Random random = new Random(repetetion);
+      Random random = new Random(repetetion);
 
       List<Parcel> insertedItems = new ArrayList<>();
 
       try (DynamicHashFile<Parcel> dynamicHashFile =
-          new DynamicHashFile<>(
-              "test.sz", "overflow.sz", 5, 10, Parcel.class)) {
+          new DynamicHashFile<>("test.sz", "overflow.sz", 5, 10, Parcel.class)) {
         for (int i = 0; i < NUMBER_OF_ACTIONS_IN_REPETETION; i++) {
           GpsCoordinates firstPoint =
               new GpsCoordinates(
@@ -67,7 +65,7 @@ class DynamicHashFileTest {
 
           Rectangle rectangle = new Rectangle(firstPoint, secondPoint);
 
-          Parcel parcel = new Parcel(i, String.valueOf(i), rectangle);
+          Parcel parcel = new Parcel(random.nextInt(1000000000), String.valueOf(i), rectangle);
 
           int chance = random.nextInt(100);
 

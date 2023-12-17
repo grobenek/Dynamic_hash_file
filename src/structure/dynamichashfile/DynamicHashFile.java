@@ -344,6 +344,10 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                 "Cannot try to shrink node %s. Error message: %s",
                 leafOfData.getParent(), e.getLocalizedMessage()));
       }
+
+      if (shouldMakeShakeOff(leafOfData)) {
+        shakeOffOverflowFile(leafOfData, mainBlock);
+      }
     }
   }
 

@@ -98,55 +98,42 @@ public class TextBuilderTrie<T extends TrieNode> implements IFileBuilder<T> {
         }
       }
 
-      // setting relations
-      Stack<InnerTrieNode> stackOfParents = new Stack<>();
-      boolean shouldAssignLeftSon = true;
-      InnerTrieNode root = null;
+      // setting relations between nodes
+      Stack<TrieNode> parentStack = new Stack<>();
+      Stack<Boolean> orderStack = new Stack<>();
 
-      for (int i = 0; i < loadedItems.size(); i++) {
-        TrieNode currentNode = loadedItems.get(i);
-        if (i == 0) {
-          // is root, skip
-          stackOfParents.push((InnerTrieNode) currentNode);
-          root = (InnerTrieNode) currentNode;
-          continue;
+      TrieNode root = null;
+
+      for (TrieNode current : loadedItems) {
+        if (root == null) {
+          root = current;
+          parentStack.push(root);
+          // preorder - so starting with left side of tree
+          orderStack.push(true);
         }
+        boolean attachLeftSon = orderStack.pop();
 
-        if (stackOfParents.isEmpty()) {
-          continue;
-        }
-
-        InnerTrieNode parent = stackOfParents.peek();
-
-        if (parent.equals(root) && root.getLeftSon() != null) {
-          shouldAssignLeftSon = false;
-        }
-
-        currentNode.setParent(parent);
-
-        if (shouldAssignLeftSon) {
-          shouldAssignLeftSon = false;
-          parent.setLeftSon(currentNode);
+        InnerTrieNode parent = (InnerTrieNode) parentStack.peek();
+        if (attachLeftSon) {
+          parent.setLeftSon(current);
+          orderStack.push(false);
         } else {
-          parent.setRightSon(currentNode);
-          // parent has both children, pop
-          shouldAssignLeftSon = true;
-          stackOfParents.pop();
+          parent.setRightSon(current);
+          parentStack.pop();
         }
 
-        if (currentNode instanceof InnerTrieNode) {
-          // reset flag and put as next parent
-          shouldAssignLeftSon = true;
-          stackOfParents.push((InnerTrieNode) currentNode);
+        // add new parent to stack
+        if (current instanceof InnerTrieNode) {
+          parentStack.push(current);
+          // reset orders
+          orderStack.push(true);
         }
       }
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+
+    } catch (ClassNotFoundException
+        | InvocationTargetException
+        | InstantiationException
+        | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
   }

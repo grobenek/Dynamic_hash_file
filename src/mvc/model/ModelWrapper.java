@@ -24,7 +24,7 @@ import util.file.quadtree.CsvBuilderQuadTreeData;
 
 public class ModelWrapper implements IModel {
   private final Random random = new Random();
-  private List<IObserver> observers;
+  private final List<IObserver> observers;
   private QuadTree<SpatialDataForQuadTree> propertyQuadTree;
   private QuadTree<SpatialDataForQuadTree> parcelQuadTree;
   private DynamicHashFile<Property> propertyDynamicHashFile;

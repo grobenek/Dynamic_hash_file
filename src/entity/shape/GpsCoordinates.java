@@ -26,11 +26,10 @@ public final class GpsCoordinates {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof GpsCoordinates)) {
+    if (!(obj instanceof GpsCoordinates casted)) {
       return false;
     }
 
-    GpsCoordinates casted = (GpsCoordinates) obj;
     return ((casted.widthCoordinate == widthCoordinate)
         && (casted.lengthCoordinate == lengthCoordinate)
         && (casted.width.getDirection() == width.getDirection())

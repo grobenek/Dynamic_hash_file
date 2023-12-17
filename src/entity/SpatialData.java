@@ -204,9 +204,7 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
   @Override
   public BitSet hash() {
     BitSet bitSet = new BitSet(12);
-    char[] hash =
-        Integer.toBinaryString(identificationNumber % 4096)
-            .toCharArray(); // TODO neskor poskusat na lepsej hashovacke
+    char[] hash = Integer.toBinaryString(identificationNumber % 4096).toCharArray();
     for (int i = 0; i < hash.length; i++) {
       if (hash[i] == '1') {
         bitSet.set(i);
@@ -217,7 +215,7 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   @Override
   public int getMaxHashSize() {
-    return 3;
+    return 12;
   }
 
   public String toString(String className) {
@@ -269,10 +267,9 @@ public abstract class SpatialData<T extends SpatialData<?>> extends Record imple
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SpatialData)) {
+    if (!(obj instanceof SpatialData<?> castedObj)) {
       return false;
     }
-    SpatialData<?> castedObj = (SpatialData<?>) obj;
 
     //    return castedObj.getDescription().equals(description)
     //        && castedObj.identificationNumber == identificationNumber
