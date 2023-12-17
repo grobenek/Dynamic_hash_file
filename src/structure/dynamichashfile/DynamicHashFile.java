@@ -1,10 +1,7 @@
 package structure.dynamichashfile;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import structure.dynamichashfile.entity.Block;
 import structure.dynamichashfile.entity.record.Record;
 import structure.dynamichashfile.entity.record.RecordFactory;
@@ -246,13 +243,13 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         foundRecord = (T) overflowBlock.getRecord(recordToDelete);
 
         if (foundRecord != null) {
+
           overflowBlock.removeRecord(foundRecord);
+          leafOfData.removeDataInReserveBlock();
 
           if (overflowBlock.isEmpty()
-              && fileBlockManager
-                  .isOverflowBlockOnTheEndOfFile( // TODO refactornut zvlast metodu na znizenie
-                      // velkosti file - znizim duplicity
-                      overflowBlockAddress, overflowBlock)) {
+              && fileBlockManager.isOverflowBlockOnTheEndOfFile(
+                  overflowBlockAddress, overflowBlock)) {
 
             long nextOverflowBlockAddress = overflowBlock.getNextOverflowBlockAddress();
             long previousOverflowBlockAddress = overflowBlock.getPreviousOverflowBlockAddress();
@@ -270,6 +267,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
               // update address of next block's previous block to INVALID
               Block<T> nextOverflowBlock =
                   fileBlockManager.getOverflowBlock(nextOverflowBlockAddress);
+              nextOverflowBlock.setPreviousOverflowBlockAddress(INVALID_ADDRESS);
               fileBlockManager.writeOverflowBlock(nextOverflowBlock, nextOverflowBlockAddress);
             } else if (previousOverflowBlockAddress != INVALID_ADDRESS
                 && nextOverflowBlockAddress == INVALID_ADDRESS) {
@@ -296,15 +294,18 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                   previousOverflowBlock, previousOverflowBlockAddress);
             }
 
-            fileBlockManager.deleteOverflowBlock(
-                leafOfData,
-                overflowBlock,
-                overflowBlockAddress); // TODO aj toto mozno nejako refactornut
+            fileBlockManager.deleteOverflowBlock(leafOfData, overflowBlock, overflowBlockAddress);
 
+            if (shouldMakeShakeOff(leafOfData)) {
+              shakeOffOverflowFile(leafOfData, mainBlock);
+            }
             break;
           }
           fileBlockManager.writeOverflowBlock(overflowBlock, overflowBlockAddress);
-          leafOfData.removeDataInReserveBlock();
+
+          if (shouldMakeShakeOff(leafOfData)) {
+            shakeOffOverflowFile(leafOfData, mainBlock);
+          }
           break;
         }
 
@@ -344,8 +345,157 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                 leafOfData.getParent(), e.getLocalizedMessage()));
       }
     }
+  }
 
-    // TODO striasanie
+  private boolean shouldMakeShakeOff(LeafTrieNode leafOfData) {
+    int requiredNumberOfBlocks =
+        (int)
+            Math.ceil(
+                (double)
+                        (leafOfData.getDataSizeInReserveBlocks()
+                            + leafOfData.getDataSizeInMainBlock())
+                    / fileBlockManager.getOverflowFileBlockingFactor());
+
+    return requiredNumberOfBlocks < leafOfData.getOverflowBlocksCount();
+  }
+
+  private void shakeOffOverflowFile(LeafTrieNode nodeOfMainBlock, Block<T> mainBlock)
+      throws IOException {
+    if (mainBlock.getAddressOfOverflowBlock() == INVALID_ADDRESS) {
+      return;
+    }
+
+    List<Block<T>> overflowBlocksList = new ArrayList<>();
+    List<Long> addressList = new ArrayList<>();
+    Queue<Record> records = new LinkedList<>();
+
+    Collections.addAll(records, mainBlock.getValidRecords());
+    mainBlock.clear();
+
+    long addressOfNextOverflowBlock = mainBlock.getAddressOfOverflowBlock();
+    while (addressOfNextOverflowBlock != INVALID_ADDRESS) {
+      Block<T> overflowBlock = fileBlockManager.getOverflowBlock(addressOfNextOverflowBlock);
+      overflowBlocksList.add(overflowBlock);
+      addressList.add(addressOfNextOverflowBlock);
+      Collections.addAll(records, overflowBlock.getValidRecords());
+      overflowBlock.clear();
+
+      addressOfNextOverflowBlock = overflowBlock.getNextOverflowBlockAddress();
+    }
+
+    for (int i = 0; i < mainBlock.getBlockingFactor(); i++) {
+      if (records.isEmpty()) {
+        break;
+      }
+
+      mainBlock.addRecord(records.poll());
+    }
+
+    // all overflow records and blocks are loaded
+    for (Block<T> tBlock : overflowBlocksList) {
+      for (int i = 0; i < tBlock.getBlockingFactor(); i++) {
+        if (records.isEmpty()) {
+          break;
+        }
+
+        tBlock.addRecord(records.poll());
+      }
+    }
+
+    // overflow blocks are saved -> empty blocks are deleted
+    for (int i = 0; i < overflowBlocksList.size(); i++) {
+      Block<T> overflowBlock = overflowBlocksList.get(i);
+
+      if (overflowBlock == null) {
+        continue;
+      }
+
+      long addressOfOverflowBlock = addressList.get(i);
+      if (overflowBlock.isEmpty()) {
+
+        long previousOverflowBlockAddress = overflowBlock.getPreviousOverflowBlockAddress();
+        long nextOverflowBlockAddress = overflowBlock.getNextOverflowBlockAddress();
+        if (previousOverflowBlockAddress == INVALID_ADDRESS
+            && nextOverflowBlockAddress == INVALID_ADDRESS) {
+
+          // set main block address to overflow block to invalid
+          mainBlock.setAddressOfOverflowBlock(INVALID_ADDRESS);
+        } else if (previousOverflowBlockAddress == INVALID_ADDRESS
+            && nextOverflowBlockAddress != INVALID_ADDRESS) {
+
+          // set main block address of overflow block to overflow's next block
+          mainBlock.setAddressOfOverflowBlock(nextOverflowBlockAddress);
+          // update address of next block's previous block to INVALID
+          Block<T> nextOverflowBlock = getNextNonNullBlock(overflowBlocksList, i);
+
+          if (nextOverflowBlock != null) {
+            nextOverflowBlock.setPreviousOverflowBlockAddress(INVALID_ADDRESS);
+          }
+        } else if (previousOverflowBlockAddress != INVALID_ADDRESS
+            && nextOverflowBlockAddress == INVALID_ADDRESS) {
+
+          // update previous overflow block's address of next overflow block to INVALID
+          Block<T> previousOverflowBlock = getPreviousNonNullBlock(overflowBlocksList, i);
+
+          if (previousOverflowBlock != null) {
+            previousOverflowBlock.setNextOverflowBlockAddress(INVALID_ADDRESS);
+          }
+        } else {
+          // block has previous and next block
+
+          // update next overflow block's address of previous block to previous block
+          Block<T> nextOverflowBlock = getNextNonNullBlock(overflowBlocksList, i);
+
+          if (nextOverflowBlock != null) {
+            nextOverflowBlock.setPreviousOverflowBlockAddress(previousOverflowBlockAddress);
+          }
+
+          // update previous overflow block's address of next block to next block
+          Block<T> previousOverflowBlock = getPreviousNonNullBlock(overflowBlocksList, i);
+
+          if (previousOverflowBlock != null) {
+            previousOverflowBlock.setNextOverflowBlockAddress(nextOverflowBlockAddress);
+          }
+        }
+
+        fileBlockManager.deleteOverflowBlock(
+            nodeOfMainBlock, overflowBlock, addressOfOverflowBlock);
+        overflowBlocksList.set(i, null);
+      }
+    }
+
+    for (int i = 0; i < overflowBlocksList.size(); i++) {
+      Block<T> tBlock = overflowBlocksList.get(i);
+      if (tBlock != null) {
+        fileBlockManager.writeOverflowBlock(tBlock, addressList.get(i));
+      }
+    }
+
+    fileBlockManager.writeMainBlock(mainBlock, nodeOfMainBlock.getAddressOfData());
+  }
+
+  private Block<T> getPreviousNonNullBlock(List<Block<T>> blockList, int currentIndex) {
+    for (int i = currentIndex - 1; i >= 0; i--) {
+      if (blockList.get(i) != null) {
+        return blockList.get(i);
+      }
+    }
+
+    return null;
+  }
+
+  private Block<T> getNextNonNullBlock(List<Block<T>> blockList, int currentIndex) {
+    if (currentIndex == 0) {
+      currentIndex = 1;
+    }
+
+    for (int i = currentIndex + 1; i < blockList.size(); i++) {
+      if (blockList.get(i) != null) {
+        return blockList.get(i);
+      }
+    }
+
+    return null;
   }
 
   public String sequenceToStringMainFile() {
@@ -436,14 +586,6 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       root = new InnerTrieNode(null, maxDepth);
       root.setLeftSon(new LeafTrieNode(root, maxDepth));
       root.setRightSon(new LeafTrieNode(root, maxDepth));
-
-      //      long leftSonAddress = fileBlockManager.getNewMainBlockAddress();
-      //      long rightSonAddress = fileBlockManager.getNewMainBlockAddress();
-      //      ((LeafTrieNode) root.getLeftSon()).setAddressOfData(leftSonAddress);
-      //      ((LeafTrieNode) root.getRightSon()).setAddressOfData(rightSonAddress);
-      //
-      //      fileBlockManager.createMainBlock(leftSonAddress);
-      //      fileBlockManager.createMainBlock(rightSonAddress);
 
       this.maxDepth = maxDepth;
     }
@@ -596,6 +738,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         // creating new overflow block
         addressOfOverflowBlock = fileBlockManager.getNewOverflowBlockAddress();
         overflowBlock = fileBlockManager.createOverflowBlock(addressOfOverflowBlock);
+        nodeOfMainBlock.increaseOverflowBlocksCount();
         mainBlock.setAddressOfOverflowBlock(addressOfOverflowBlock);
       } else {
         // finding free block
@@ -610,6 +753,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
               long newOverflowBlockAddress = fileBlockManager.getNewOverflowBlockAddress();
               Block<T> newOverflowBlock =
                   fileBlockManager.createOverflowBlock(newOverflowBlockAddress);
+              nodeOfMainBlock.increaseOverflowBlocksCount();
 
               overflowBlock.setNextOverflowBlockAddress(newOverflowBlockAddress);
               newOverflowBlock.setPreviousOverflowBlockAddress(addressOfOverflowBlock);

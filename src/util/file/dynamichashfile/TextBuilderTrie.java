@@ -43,6 +43,8 @@ public class TextBuilderTrie<T extends TrieNode> implements IFileBuilder<T> {
         sb.append(((LeafTrieNode) node).getDataSizeInMainBlock());
         sb.append(DELIMITER);
         sb.append(((LeafTrieNode) node).getDataSizeInReserveBlock());
+        sb.append(DELIMITER);
+        sb.append(((LeafTrieNode) node).getOverflowBlocksCount());
       }
       sb.append(System.lineSeparator());
     }
@@ -81,10 +83,12 @@ public class TextBuilderTrie<T extends TrieNode> implements IFileBuilder<T> {
           int addressOfData = Integer.parseInt(data[1]);
           int dataSizeInMainBlock = Integer.parseInt(data[2]);
           int dataSizeInReserveBlock = Integer.parseInt(data[3]);
+          int overflowBlocksCount = Integer.parseInt(data[4]);
 
           ((LeafTrieNode) createdObject).setAddressOfData(addressOfData);
           ((LeafTrieNode) createdObject).setDataSizeInMainBlock(dataSizeInMainBlock);
           ((LeafTrieNode) createdObject).setDataSizeInReserveBlocks(dataSizeInReserveBlock);
+          ((LeafTrieNode) createdObject).setOverflowBlocksCount(overflowBlocksCount);
 
           loadedItems.add((T) createdObject);
         }
