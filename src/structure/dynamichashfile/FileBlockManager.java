@@ -121,7 +121,9 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
 
     if (isMainBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
       // block is on the end of a file - set new length of file
-      mainFileStream.setLength(addressOfData); //TODO mozno pozriet ci sa nebude dat nejako rekurzivne pozerat stale - ale to az ked vsetko ostatne bude
+      mainFileStream.setLength(
+          addressOfData); // TODO mozno pozriet ci sa nebude dat nejako rekurzivne pozerat stale -
+      // ale to az ked vsetko ostatne bude
     } else {
       // block is in the middle - clear it and put it in free blocks
       nodeOfBlockToDelete.removeDataInMainBlock(nodeOfBlockToDelete.getDataSizeInMainBlock());
@@ -299,21 +301,20 @@ class FileBlockManager<T extends Record> implements AutoCloseable {
     }
   }
 
-  public void deleteOverflowBlock(LeafTrieNode nodeOfData) throws IOException {
-    long addressOfData = nodeOfData.getAddressOfData();
-    Block<T> blockToDelete = getOverflowBlock(addressOfData);
+  public void deleteOverflowBlock(
+      LeafTrieNode nodeOfData, Block<T> overflowBlockToDelete, long addressOfOverflowBlock)
+      throws IOException {
 
-    if (isOverflowBlockOnTheEndOfFile(addressOfData, blockToDelete)) {
+    if (isOverflowBlockOnTheEndOfFile(addressOfOverflowBlock, overflowBlockToDelete)) {
       // block is on the end of a file - set new length of file
-      overflowFileStream.setLength(
-          addressOfData);
+      overflowFileStream.setLength(addressOfOverflowBlock);
     } else {
       // block is in the middle - clear it and put it in free blocks
-      nodeOfData.removeDataInReserveBlock(nodeOfData.getDataSizeInReserveBlock());
-      blockToDelete.clear();
-      writeOverflowBlock(blockToDelete, addressOfData);
+      nodeOfData.removeDataInReserveBlock(overflowBlockToDelete.getValidRecordsCount());
+      overflowBlockToDelete.clear();
+      writeOverflowBlock(overflowBlockToDelete, addressOfOverflowBlock);
 
-      setOverflowBlockAsFirstFreeBlock(addressOfData, blockToDelete);
+      setOverflowBlockAsFirstFreeBlock(addressOfOverflowBlock, overflowBlockToDelete);
     }
   }
 

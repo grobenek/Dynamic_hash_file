@@ -229,12 +229,12 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           String.format("Address for record %s was not found when deleting!", recordToDelete));
     }
 
-    Block<T> block = fileBlockManager.getMainBlock(address);
+    Block<T> mainBlock = fileBlockManager.getMainBlock(address);
 
-    T foundRecord = (T) block.getRecord(recordToDelete);
+    T foundRecord = (T) mainBlock.getRecord(recordToDelete);
 
     if (foundRecord == null) {
-      long overflowBlockAddress = block.getAddressOfOverflowBlock();
+      long overflowBlockAddress = mainBlock.getAddressOfOverflowBlock();
 
       if (overflowBlockAddress == INVALID_ADDRESS) {
         throw new IllegalStateException(
@@ -247,35 +247,64 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
 
         if (foundRecord != null) {
           overflowBlock.removeRecord(foundRecord);
-          leafOfData.removeDataInReserveBlock();
 
-//                    if (overflowBlock.isEmpty()
-//                        && fileBlockManager.isOverflowBlockOnTheEndOfFile(overflowBlockAddress, overflowBlock)) {
-//                      // is empty and on end of file
-//                      long previousBlockAddress = overflowBlock.getPreviousOverflowBlockAddress();
-//
-//                      if (previousBlockAddress != INVALID_ADDRESS) {
-//                        // update previous block refference to this block
-//                        Block<T> previousBlock = fileBlockManager.getOverflowBlock(previousBlockAddress);
-//                        previousBlock.setNextOverflowBlockAddress(INVALID_ADDRESS);
-//
-//                        if (overflowBlock.getNextOverflowBlockAddress() != INVALID_ADDRESS) {
-//                          previousBlock.setNextOverflowBlockAddress(overflowBlock.getNextOverflowBlockAddress());
-//                        }
-//
-//                        fileBlockManager.writeOverflowBlock(previousBlock, previousBlockAddress);
-//                      } else {
-//                        // no previous block - delete overflow block and update main block
-//                        block.setAddressOfOverflowBlock(INVALID_ADDRESS);
-//                        fileBlockManager.writeMainBlock(block, address); //TODO mozno refactornut delete metodu a spravit jednu na rovno seknutie file - odstranim duplicitne checkovanie
-//                      }
-//
-//                      //remove block
-//                      fileBlockManager.deleteOverflowBlock(leafOfData);
-//                      return;
-//                    }
-//                    //TODO spravit to iste aj s overflow blockom
+          if (overflowBlock.isEmpty()
+              && fileBlockManager
+                  .isOverflowBlockOnTheEndOfFile( // TODO refactornut zvlast metodu na znizenie
+                      // velkosti file - znizim duplicity
+                      overflowBlockAddress, overflowBlock)) {
+
+            long nextOverflowBlockAddress = overflowBlock.getNextOverflowBlockAddress();
+            long previousOverflowBlockAddress = overflowBlock.getPreviousOverflowBlockAddress();
+            if (previousOverflowBlockAddress == INVALID_ADDRESS
+                && nextOverflowBlockAddress == INVALID_ADDRESS) {
+              // set main block address to overflow block to invalid
+              mainBlock.setAddressOfOverflowBlock(INVALID_ADDRESS);
+              fileBlockManager.writeMainBlock(mainBlock, address);
+            } else if (previousOverflowBlockAddress == INVALID_ADDRESS
+                && nextOverflowBlockAddress != INVALID_ADDRESS) {
+              // set main block address of overflow block to overflow's next block
+              mainBlock.setAddressOfOverflowBlock(nextOverflowBlockAddress);
+              fileBlockManager.writeMainBlock(mainBlock, address);
+
+              // update address of next block's previous block to INVALID
+              Block<T> nextOverflowBlock =
+                  fileBlockManager.getOverflowBlock(nextOverflowBlockAddress);
+              fileBlockManager.writeOverflowBlock(nextOverflowBlock, nextOverflowBlockAddress);
+            } else if (previousOverflowBlockAddress != INVALID_ADDRESS
+                && nextOverflowBlockAddress == INVALID_ADDRESS) {
+              // update previous overflow block's address of next overflow block to INVALID
+              Block<T> previousOverflowBlock =
+                  fileBlockManager.getOverflowBlock(previousOverflowBlockAddress);
+              previousOverflowBlock.setNextOverflowBlockAddress(INVALID_ADDRESS);
+              fileBlockManager.writeOverflowBlock(
+                  previousOverflowBlock, previousOverflowBlockAddress);
+            } else {
+              // block has previous and next block
+
+              // update next overflow block's address of previous block to previous block
+              Block<T> nextOverflowBlock =
+                  fileBlockManager.getOverflowBlock(nextOverflowBlockAddress);
+              nextOverflowBlock.setPreviousOverflowBlockAddress(previousOverflowBlockAddress);
+              fileBlockManager.writeOverflowBlock(nextOverflowBlock, nextOverflowBlockAddress);
+
+              // update previous overflow block's address of next block to next block
+              Block<T> previousOverflowBlock =
+                  fileBlockManager.getOverflowBlock(previousOverflowBlockAddress);
+              previousOverflowBlock.setNextOverflowBlockAddress(nextOverflowBlockAddress);
+              fileBlockManager.writeOverflowBlock(
+                  previousOverflowBlock, previousOverflowBlockAddress);
+            }
+
+            fileBlockManager.deleteOverflowBlock(
+                leafOfData,
+                overflowBlock,
+                overflowBlockAddress); // TODO aj toto mozno nejako refactornut
+
+            break;
+          }
           fileBlockManager.writeOverflowBlock(overflowBlock, overflowBlockAddress);
+          leafOfData.removeDataInReserveBlock();
           break;
         }
 
@@ -287,12 +316,12 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
         }
       }
     } else {
-      block.removeRecord(foundRecord);
+      mainBlock.removeRecord(foundRecord);
       leafOfData.removeDataInMainBlock();
 
-      // checking if block has become empty and on end of file
-      if (block.isEmpty() && leafOfData.getDataSizeInReserveBlock() == 0) {
-        // delete block from end of file
+      // checking if mainBlock has become empty and on end of file
+      if (mainBlock.isEmpty() && leafOfData.getDataSizeInReserveBlock() == 0) {
+        // delete mainBlock from end of file
         fileBlockManager.deleteMainBlock(leafOfData);
         InnerTrieNode paretnOfData = (InnerTrieNode) leafOfData.getParent();
 
@@ -303,7 +332,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
           paretnOfData.setRightSon(null);
         }
       } else {
-        fileBlockManager.writeMainBlock(block, address);
+        fileBlockManager.writeMainBlock(mainBlock, address);
       }
 
       try {
@@ -316,7 +345,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
       }
     }
 
-    //TODO striasanie
+    // TODO striasanie
   }
 
   public String sequenceToStringMainFile() {
