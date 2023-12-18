@@ -121,8 +121,9 @@ public class ModelWrapper implements IModel {
       Parcel parcelInHashFile = parcelDynamicHashFile.find(parcelOfProperty);
       parcelInHashFile.addRelatedData(new Property(newPropertyIdentificationNumber));
 
-      parcelDynamicHashFile.delete(parcelInHashFile);
-      parcelDynamicHashFile.insert(parcelInHashFile);
+//      parcelDynamicHashFile.delete(parcelInHashFile);
+//      parcelDynamicHashFile.insert(parcelInHashFile);
+      parcelDynamicHashFile.edit(parcelInHashFile, parcelInHashFile);
     }
 
     propertyQuadTree.insert(propertyForQuadTree);
@@ -172,8 +173,9 @@ public class ModelWrapper implements IModel {
       Property propertyInHashFile = propertyDynamicHashFile.find(propertyOfParcel);
       propertyInHashFile.addRelatedData(new Parcel(newParcelIdentificationNumber));
 
-      propertyDynamicHashFile.delete(propertyInHashFile);
-      propertyDynamicHashFile.insert(propertyInHashFile);
+//      propertyDynamicHashFile.delete(propertyInHashFile);
+//      propertyDynamicHashFile.insert(propertyInHashFile);
+        propertyDynamicHashFile.edit(propertyInHashFile, propertyInHashFile);
     }
 
     parcelQuadTree.insert(parcelForQuadTree);
@@ -483,7 +485,7 @@ public class ModelWrapper implements IModel {
             String.valueOf(random.nextInt(10000)),
             new Rectangle(firstPointOfItem, secondPointOfItem));
       } catch (IllegalStateException | IOException e) {
-        // do not insert and continue if insert criteria are not met
+        throw new RuntimeException(e);
       }
     }
 
@@ -517,6 +519,7 @@ public class ModelWrapper implements IModel {
             new Rectangle(firstPointOfItem, secondPointOfItem));
       } catch (IllegalStateException | IOException e) {
         // do not insert and continue if insert criteria are not met
+        throw new RuntimeException(e);
       }
     }
   }
