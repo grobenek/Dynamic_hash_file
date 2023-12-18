@@ -360,7 +360,7 @@ public class DynamicHashFile<T extends Record> implements AutoCloseable {
                             + leafOfData.getDataSizeInMainBlock())
                     / fileBlockManager.getOverflowFileBlockingFactor());
 
-    return requiredNumberOfBlocks < leafOfData.getOverflowBlocksCount();
+    return requiredNumberOfBlocks <= leafOfData.getOverflowBlocksCount();
   }
 
   private void shakeOffOverflowFile(LeafTrieNode nodeOfMainBlock, Block<T> mainBlock)
