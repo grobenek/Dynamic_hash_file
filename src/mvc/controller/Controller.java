@@ -146,7 +146,11 @@ public class Controller implements IController {
 
   @Override
   public void generateData(int numberOfProperties, int numberOfParcels) {
-    model.generateData(numberOfProperties, numberOfParcels);
+    try {
+      model.generateData(numberOfProperties, numberOfParcels);
+    } catch (Exception e) {
+      view.showPopupMessage(e.getLocalizedMessage());
+    }
   }
 
   @Override
